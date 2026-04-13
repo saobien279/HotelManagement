@@ -1,0 +1,118 @@
+// ============================================
+//  HotelOS – Mock Data (TypeScript)
+// ============================================
+
+import type {
+  RoomType, Room, Reservation, Guest, Service,
+  InventoryItem, ActivityLog, User, RevenueData, RevenueBySource,
+} from './types';
+
+export const roomTypes: RoomType[] = [
+  { id: 'SGL', name: 'Single',  capacity: 1, basePrice: 350000 },
+  { id: 'DBL', name: 'Double',  capacity: 2, basePrice: 550000 },
+  { id: 'TWN', name: 'Twin',    capacity: 2, basePrice: 600000 },
+  { id: 'DLX', name: 'Deluxe', capacity: 2, basePrice: 850000 },
+  { id: 'SUT', name: 'Suite',   capacity: 4, basePrice: 1500000 },
+  { id: 'FAM', name: 'Family',  capacity: 4, basePrice: 1200000 },
+];
+
+export const initialRooms: Room[] = [
+  { id: '101', floor: 1, type: 'SGL', status: 'vacant',      guest: null },
+  { id: '102', floor: 1, type: 'DBL', status: 'occupied',    guest: 'Nguyễn Văn A' },
+  { id: '103', floor: 1, type: 'TWN', status: 'cleaning',    guest: null },
+  { id: '104', floor: 1, type: 'SGL', status: 'reserved',    guest: 'Trần Thị B' },
+  { id: '105', floor: 1, type: 'DBL', status: 'vacant',      guest: null },
+  { id: '106', floor: 1, type: 'SGL', status: 'maintenance', guest: null },
+  { id: '201', floor: 2, type: 'DLX', status: 'occupied',    guest: 'Lê Hoàng C' },
+  { id: '202', floor: 2, type: 'DLX', status: 'vacant',      guest: null },
+  { id: '203', floor: 2, type: 'TWN', status: 'occupied',    guest: 'Phạm Minh D' },
+  { id: '204', floor: 2, type: 'DBL', status: 'cleaning',    guest: null },
+  { id: '205', floor: 2, type: 'SGL', status: 'vacant',      guest: null },
+  { id: '206', floor: 2, type: 'DLX', status: 'reserved',    guest: 'Hoàng Thị E' },
+  { id: '301', floor: 3, type: 'SUT', status: 'occupied',    guest: 'Vũ Đức F' },
+  { id: '302', floor: 3, type: 'SUT', status: 'vacant',      guest: null },
+  { id: '303', floor: 3, type: 'FAM', status: 'occupied',    guest: 'Đặng Thị G' },
+  { id: '304', floor: 3, type: 'FAM', status: 'cleaning',    guest: null },
+  { id: '305', floor: 3, type: 'SUT', status: 'reserved',    guest: 'Bùi Quang H' },
+  { id: '306', floor: 3, type: 'DLX', status: 'vacant',      guest: null },
+];
+
+export const initialReservations: Reservation[] = [
+  { id: 'BK001', guestName: 'Nguyễn Văn A', phone: '0901234567', roomId: '102', roomType: 'DBL', checkIn: '2026-03-13', checkOut: '2026-03-16', adults: 2, children: 0, status: 'checkedin',  source: 'direct',  note: '', total: 1650000 },
+  { id: 'BK002', guestName: 'Trần Thị B',   phone: '0912345678', roomId: '104', roomType: 'SGL', checkIn: '2026-03-14', checkOut: '2026-03-15', adults: 1, children: 0, status: 'confirmed', source: 'booking', note: 'Phòng không hút thuốc', total: 350000 },
+  { id: 'BK003', guestName: 'Lê Hoàng C',   phone: '0923456789', roomId: '201', roomType: 'DLX', checkIn: '2026-03-12', checkOut: '2026-03-17', adults: 2, children: 1, status: 'checkedin',  source: 'agoda',   note: '', total: 4250000 },
+  { id: 'BK004', guestName: 'Phạm Minh D',  phone: '0934567890', roomId: '203', roomType: 'TWN', checkIn: '2026-03-14', checkOut: '2026-03-16', adults: 2, children: 0, status: 'deposit',   source: 'direct',  note: 'Cần thêm giường phụ', total: 1200000 },
+  { id: 'BK005', guestName: 'Hoàng Thị E',  phone: '0945678901', roomId: '206', roomType: 'DLX', checkIn: '2026-03-15', checkOut: '2026-03-18', adults: 1, children: 0, status: 'confirmed', source: 'booking', note: '', total: 2550000 },
+  { id: 'BK006', guestName: 'Vũ Đức F',     phone: '0956789012', roomId: '301', roomType: 'SUT', checkIn: '2026-03-10', checkOut: '2026-03-14', adults: 2, children: 2, status: 'checkedin',  source: 'direct',  note: 'VIP guest', total: 6000000 },
+  { id: 'BK007', guestName: 'Đặng Thị G',   phone: '0967890123', roomId: '303', roomType: 'FAM', checkIn: '2026-03-13', checkOut: '2026-03-16', adults: 2, children: 2, status: 'checkedin',  source: 'agoda',   note: '', total: 3600000 },
+  { id: 'BK008', guestName: 'Bùi Quang H',  phone: '0978901234', roomId: '305', roomType: 'SUT', checkIn: '2026-03-16', checkOut: '2026-03-20', adults: 3, children: 0, status: 'pending',   source: 'direct',  note: '', total: 6000000 },
+  { id: 'BK009', guestName: 'Ngô Thị I',    phone: '0989012345', roomId: null,  roomType: 'SGL', checkIn: '2026-03-18', checkOut: '2026-03-20', adults: 1, children: 0, status: 'cancelled', source: 'booking', note: '', total: 700000 },
+];
+
+export const guests: Guest[] = [
+  { id: 'G001', name: 'Nguyễn Văn A',  cccd: '079123456789', phone: '0901234567', email: 'nva@email.com', nationality: 'Việt Nam', bookings: 3, totalSpent: 5200000 },
+  { id: 'G002', name: 'Trần Thị B',    cccd: '079987654321', phone: '0912345678', email: 'ttb@email.com', nationality: 'Việt Nam', bookings: 1, totalSpent: 350000 },
+  { id: 'G003', name: 'Lê Hoàng C',    cccd: null,           phone: '0923456789', email: 'lhc@email.com', nationality: 'Anh',      bookings: 2, totalSpent: 9500000, passport: 'GB123456' },
+  { id: 'G004', name: 'Phạm Minh D',   cccd: '079456789123', phone: '0934567890', email: 'pmd@email.com', nationality: 'Việt Nam', bookings: 1, totalSpent: 1200000 },
+  { id: 'G005', name: 'Vũ Đức F',      cccd: '079654321987', phone: '0956789012', email: 'vdf@email.com', nationality: 'Việt Nam', bookings: 5, totalSpent: 22000000 },
+];
+
+export const initialServices: Service[] = [
+  { id: 'SV001', bookingId: 'BK001', name: 'Minibar',      qty: 2, unit: 'lần',    price: 150000, date: '2026-03-13', status: 'billed' },
+  { id: 'SV002', bookingId: 'BK003', name: 'Giặt ủi',      qty: 1, unit: 'kg',     price: 80000,  date: '2026-03-13', status: 'billed' },
+  { id: 'SV003', bookingId: 'BK006', name: 'Nhà hàng',     qty: 1, unit: 'bữa',    price: 450000, date: '2026-03-11', status: 'billed' },
+  { id: 'SV004', bookingId: 'BK007', name: 'Tour du lịch', qty: 4, unit: 'người',  price: 250000, date: '2026-03-14', status: 'pending' },
+  { id: 'SV005', bookingId: 'BK001', name: 'Spa',          qty: 1, unit: 'lần',    price: 500000, date: '2026-03-14', status: 'pending' },
+];
+
+export const initialInventory: InventoryItem[] = [
+  { id: 'INV001', name: 'Khăn tắm',       category: 'linens',   unit: 'cái',  stock: 120, minStock: 40, cost: 35000 },
+  { id: 'INV002', name: 'Chăn đơn',        category: 'linens',   unit: 'cái',  stock: 45,  minStock: 20, cost: 280000 },
+  { id: 'INV003', name: 'Dầu gội',         category: 'amenity',  unit: 'chai', stock: 200, minStock: 60, cost: 15000 },
+  { id: 'INV004', name: 'Xà phòng 100g',   category: 'amenity',  unit: 'bánh', stock: 180, minStock: 60, cost: 8000 },
+  { id: 'INV005', name: 'Nước đóng chai',  category: 'beverage', unit: 'chai', stock: 96,  minStock: 48, cost: 8000 },
+  { id: 'INV006', name: 'Cà phê gói',      category: 'beverage', unit: 'gói',  stock: 150, minStock: 50, cost: 5000 },
+  { id: 'INV007', name: 'Bia lon',          category: 'beverage', unit: 'lon',  stock: 72,  minStock: 24, cost: 22000 },
+  { id: 'INV008', name: 'Bóng đèn LED',    category: 'supplies', unit: 'cái',  stock: 15,  minStock: 10, cost: 45000 },
+];
+
+export const activityLog: ActivityLog[] = [
+  { id: 'L001', time: '15:10', date: '2026-03-14', user: 'Lễ tân 1',     action: 'Check-in khách Nguyễn Văn A – Phòng 102', type: 'checkin' },
+  { id: 'L002', time: '14:45', date: '2026-03-14', user: 'Admin',         action: 'Cập nhật giá phòng Suite: 1.500.000đ', type: 'config' },
+  { id: 'L003', time: '13:30', date: '2026-03-14', user: 'Lễ tân 2',     action: 'Tạo đặt phòng mới BK008 – Bùi Quang H', type: 'booking' },
+  { id: 'L004', time: '12:00', date: '2026-03-14', user: 'Buồng phòng 1', action: 'Cập nhật phòng 103: Đang dọn → Đã dọn xong', type: 'housekeeping' },
+  { id: 'L005', time: '10:20', date: '2026-03-14', user: 'Lễ tân 1',     action: 'Hủy đặt phòng BK009 – Ngô Thị I', type: 'cancel' },
+  { id: 'L006', time: '09:15', date: '2026-03-14', user: 'Kế toán',       action: 'Xuất hóa đơn BK006 – Vũ Đức F: 6.450.000đ', type: 'invoice' },
+  { id: 'L007', time: '08:55', date: '2026-03-14', user: 'Admin',         action: 'Đăng nhập hệ thống', type: 'system' },
+];
+
+export const initialUsers: User[] = [
+  { id: 'U001', name: 'Admin',         username: 'admin',      role: 'admin',        status: 'active',   lastLogin: '2026-03-14 08:55' },
+  { id: 'U002', name: 'Lễ tân 1',      username: 'frontdesk1', role: 'frontdesk',    status: 'active',   lastLogin: '2026-03-14 07:00' },
+  { id: 'U003', name: 'Lễ tân 2',      username: 'frontdesk2', role: 'frontdesk',    status: 'active',   lastLogin: '2026-03-14 07:05' },
+  { id: 'U004', name: 'Buồng phòng 1', username: 'hk1',        role: 'housekeeping', status: 'active',   lastLogin: '2026-03-14 08:00' },
+  { id: 'U005', name: 'Kế toán',       username: 'accountant', role: 'accountant',   status: 'active',   lastLogin: '2026-03-14 08:30' },
+  { id: 'U006', name: 'Nhân viên kho', username: 'warehouse',  role: 'inventory',    status: 'inactive', lastLogin: '2026-03-10 14:00' },
+];
+
+export const revenueMonthly: RevenueData[] = [
+  { month: 'T1',  revenue: 45200000, occupancy: 68 },
+  { month: 'T2',  revenue: 38500000, occupancy: 58 },
+  { month: 'T3',  revenue: 52100000, occupancy: 78 },
+  { month: 'T4',  revenue: 61300000, occupancy: 85 },
+  { month: 'T5',  revenue: 74200000, occupancy: 91 },
+  { month: 'T6',  revenue: 68900000, occupancy: 88 },
+  { month: 'T7',  revenue: 82100000, occupancy: 95 },
+  { month: 'T8',  revenue: 79400000, occupancy: 92 },
+  { month: 'T9',  revenue: 55600000, occupancy: 72 },
+  { month: 'T10', revenue: 49200000, occupancy: 65 },
+  { month: 'T11', revenue: 58300000, occupancy: 77 },
+  { month: 'T12', revenue: 76200000, occupancy: 89 },
+];
+
+export const revenueBySource: RevenueBySource[] = [
+  { source: 'Trực tiếp',  percent: 38, amount: 19836000 },
+  { source: 'Booking.com', percent: 29, amount: 15138000 },
+  { source: 'Agoda',       percent: 21, amount: 10962000 },
+  { source: 'Khác',        percent: 12, amount: 6264000 },
+];
