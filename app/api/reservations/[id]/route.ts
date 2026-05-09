@@ -26,23 +26,24 @@ export async function PATCH(req: Request, { params }: Params) {
   db.reservations[idx] = updated;
 
   // Auto-update room status when reservation status changes
-  if (body.status && old.roomId) {
-    const roomIdx = db.rooms.findIndex(r => r.id === old.roomId);
+  const targetRoomId = body.roomId || old.roomId;
+  if (body.status && targetRoomId) {
+    const roomIdx = db.rooms.findIndex(r => r.id === targetRoomId);
     if (roomIdx !== -1) {
       if (body.status === 'checkedin')  {
         db.rooms[roomIdx].status = 'occupied';
-        db.rooms[roomIdx].guest  = old.guestName;
-        appendLog(db, 'Lễ tân', `Check-in ${old.guestName} – Phòng ${old.roomId}`, 'checkin');
+        db.rooms[roomIdx].guest  = updated.guestName;
+        appendLog(db, 'Lễ tân', `Check-in ${updated.guestName} – Phòng ${targetRoomId}`, 'checkin');
       }
-      if (body.status === 'checkedout') {
+      else if (body.status === 'checkedout') {
         db.rooms[roomIdx].status = 'cleaning';
         db.rooms[roomIdx].guest  = null;
-        appendLog(db, 'Lễ tân', `Check-out ${old.guestName} – Phòng ${old.roomId}`, 'invoice');
+        appendLog(db, 'Lễ tân', `Check-out ${updated.guestName} – Phòng ${targetRoomId}`, 'invoice');
       }
-      if (body.status === 'cancelled')  {
+      else if (body.status === 'cancelled')  {
         db.rooms[roomIdx].status = 'vacant';
         db.rooms[roomIdx].guest  = null;
-        appendLog(db, 'Lễ tân', `Hủy đặt phòng ${id} – ${old.guestName}`, 'cancel');
+        appendLog(db, 'Lễ tân', `Hủy đặt phòng ${id} – ${updated.guestName}`, 'cancel');
       }
     }
   }

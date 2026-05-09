@@ -23,7 +23,7 @@ function Avatar({ name, color }: { name: string; color: string }) {
 
 export default function FrontDeskPage() {
   const [activeTab, setActiveTab] = useState<'checkin'|'checkout'|'staying'|'groups'>('checkin');
-  const { reservations, services, updateReservationStatus, addReservation, loading } = useHotel();
+  const { rooms, reservations, services, updateReservationStatus, addReservation, loading } = useHotel();
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
 
@@ -65,13 +65,31 @@ export default function FrontDeskPage() {
           <label className="form-label">Số tiền đặt cọc (VND)</label>
           <input id="ci_deposit" type="number" className="form-input" placeholder="0" defaultValue={Math.round(r.total / 2)}/>
         </div>
+        {!r.roomId && (
+          <div className="form-group">
+            <label className="form-label">Gán phòng <span style={{color:'var(--color-danger)'}}>*</span></label>
+            <select id="ci_room" className="form-select">
+              <option value="">-- Chọn phòng trống --</option>
+              {rooms.filter(rm => rm.status === 'vacant' && rm.type === r.roomType).map(rm => (
+                <option key={rm.id} value={rm.id}>Phòng {rm.id}</option>
+              ))}
+            </select>
+            <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:4 }}>
+              Loại phòng: {roomTypeLabel[r.roomType]}
+            </div>
+          </div>
+        )}
       </div>
     ), [
       { label: '✓ Xác nhận Check-in', cls: 'btn-primary', onClick: async () => {
         const cccd = (document.getElementById('ci_cccd') as HTMLInputElement)?.value?.trim();
         if (!cccd) { toast('Vui lòng nhập số CCCD / Hộ chiếu', 'warn'); return; }
+        
+        const roomId = r.roomId || (document.getElementById('ci_room') as HTMLSelectElement)?.value;
+        if (!roomId) { toast('Vui lòng chọn phòng để Check-in', 'warn'); return; }
+
         try {
-          await updateReservationStatus(id, 'checkedin');
+          await updateReservationStatus(id, 'checkedin', { roomId });
           closeModal();
           toast(`✅ Check-in thành công! Chào mừng ${r.guestName}`, 'success');
         } catch (e: any) {
@@ -195,6 +213,12 @@ export default function FrontDeskPage() {
 
   // ── Walk-in modal ──────────────────────────
   const openWalkIn = () => {
+    const renderRoomOptions = (typeId: string) => {
+      const filtered = rooms.filter(rm => rm.status === 'vacant' && rm.type === typeId);
+      if (filtered.length === 0) return '<option value="">-- Hết phòng loại này --</option>';
+      return filtered.map(rm => `<option value="${rm.id}">Phòng ${rm.id}</option>`).join('');
+    };
+
     openModal('Walk-in – Nhận phòng trực tiếp', (
       <div>
         <div style={{ background:'var(--color-info-bg)', borderRadius:'var(--radius-md)', padding:10, marginBottom:14, fontSize:12, color:'var(--color-info)', border:'1px solid var(--color-info-border)' }}>
@@ -217,7 +241,10 @@ export default function FrontDeskPage() {
           </div>
           <div className="form-group">
             <label className="form-label">Loại phòng</label>
-            <select id="wi_type" className="form-select">
+            <select id="wi_type" className="form-select" onChange={(e) => {
+              const roomSel = document.getElementById('wi_room') as HTMLSelectElement;
+              if (roomSel) roomSel.innerHTML = renderRoomOptions(e.target.value);
+            }}>
               {roomTypes.map(t => (
                 <option key={t.id} value={t.id}>{t.name} ({t.id}) – {fmtShort(t.basePrice)}/đêm</option>
               ))}
@@ -226,17 +253,21 @@ export default function FrontDeskPage() {
         </div>
         <div className="form-row">
           <div className="form-group">
+            <label className="form-label">Chọn phòng <span style={{color:'var(--color-danger)'}}>*</span></label>
+            <select id="wi_room" className="form-select" dangerouslySetInnerHTML={{ __html: renderRoomOptions(roomTypes[0].id) }} />
+          </div>
+          <div className="form-group">
             <label className="form-label">Số đêm</label>
             <input id="wi_nights" type="number" className="form-input" defaultValue={1} min={1}/>
           </div>
-          <div className="form-group">
-            <label className="form-label">Phương thức thanh toán</label>
-            <select id="wi_pay" className="form-select">
-              <option>Tiền mặt</option>
-              <option>Chuyển khoản</option>
-              <option>Thẻ tín dụng</option>
-            </select>
-          </div>
+        </div>
+        <div className="form-group">
+          <label className="form-label">Phương thức thanh toán</label>
+          <select id="wi_pay" className="form-select">
+            <option>Tiền mặt</option>
+            <option>Chuyển khoản</option>
+            <option>Thẻ tín dụng</option>
+          </select>
         </div>
         <div className="form-group">
           <label className="form-label">Ghi chú</label>
@@ -248,22 +279,27 @@ export default function FrontDeskPage() {
         const name  = (document.getElementById('wi_name') as HTMLInputElement)?.value?.trim();
         const phone = (document.getElementById('wi_phone') as HTMLInputElement)?.value?.trim();
         const cccd  = (document.getElementById('wi_cccd') as HTMLInputElement)?.value?.trim();
+        const roomId = (document.getElementById('wi_room') as HTMLSelectElement)?.value;
+        
         if (!name || !phone || !cccd) { toast('Vui lòng điền đầy đủ thông tin bắt buộc *', 'warn'); return; }
+        if (!roomId) { toast('Vui lòng chọn phòng trống', 'warn'); return; }
+
         const typeId = (document.getElementById('wi_type') as HTMLSelectElement)?.value as any;
         const nights = +(document.getElementById('wi_nights') as HTMLInputElement)?.value || 1;
         const note   = (document.getElementById('wi_note') as HTMLTextAreaElement)?.value || '';
         const rt     = roomTypes.find(t => t.id === typeId)!;
         const checkIn  = TODAY;
         const checkOut = new Date(new Date(TODAY).getTime() + nights * 86400000).toISOString().slice(0, 10);
+
         try {
           await addReservation({
-            guestName: name, phone, roomId: null, roomType: typeId,
+            guestName: name, phone, roomId, roomType: typeId,
             checkIn, checkOut, adults: 1, children: 0,
             status: 'checkedin', source: 'direct', note,
             total: rt.basePrice * nights,
           });
           closeModal();
-          toast(`✅ Walk-in thành công! ${name} – ${nights} đêm`, 'success');
+          toast(`✅ Walk-in thành công! ${name} – Phòng ${roomId}`, 'success');
         } catch (e: any) {
           toast(e.message ?? 'Lỗi hệ thống', 'error');
         }
@@ -455,6 +491,7 @@ export default function FrontDeskPage() {
                       <td style={{ fontSize:12, color:'var(--text-muted)', maxWidth:140 }}>{r.note || '—'}</td>
                       <td>
                         <div style={{ display:'flex', gap:4 }}>
+                          <button className="btn btn-primary btn-sm" onClick={() => doCheckOut(r.id)}>Thanh toán</button>
                           <button className="btn btn-ghost btn-sm" onClick={() => viewInvoice(r.id)}>Hóa đơn</button>
                         </div>
                       </td>

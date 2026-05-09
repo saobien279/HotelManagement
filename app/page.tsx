@@ -3,8 +3,8 @@
 import { useHotel } from '@/context/HotelContext';
 import { useModal } from '@/components/ui/UIProvider';
 import { useToast } from '@/components/ui/UIProvider';
-import { revenueMonthly, revenueBySource, activityLog } from '@/context/HotelContext';
-import { fmtShort, logColor } from '@/lib/utils';
+import { revenueMonthly, revenueBySource } from '@/context/HotelContext';
+import { fmtShort, logColor, TODAY } from '@/lib/utils';
 import {
   Building, CheckCircle2, LogIn, LogOut, Wallet,
   BarChart, Home, Globe, Clock, Zap,
@@ -14,13 +14,19 @@ import {
 import Link from 'next/link';
 
 export default function DashboardPage() {
-  const { getStats, reservations } = useHotel();
+  const { getStats, reservations, activityLog } = useHotel();
   const stats = getStats();
 
-  const todayCheckins  = reservations.filter(r => r.checkIn  === '2026-03-14' && r.status !== 'cancelled').length;
-  const todayCheckouts = reservations.filter(r => r.checkOut === '2026-03-14' && r.status !== 'cancelled').length;
+  const todayCheckins  = reservations.filter(r => r.checkIn  === TODAY && r.status !== 'cancelled').length;
+  const todayCheckouts = reservations.filter(r => r.checkOut === TODAY && r.status !== 'cancelled').length;
 
   const maxRev = Math.max(...revenueMonthly.map(r => r.revenue));
+  const maxMonthStr = revenueMonthly.find(r => r.revenue === maxRev)?.month || '';
+  
+  const currentMonthInt = new Date().getMonth() + 1;
+  const currentMonthStr = 'T' + currentMonthInt;
+  const currentMonthData = revenueMonthly.find(r => r.month === currentMonthStr);
+  const currentMonthRevenue = currentMonthData ? currentMonthData.revenue : 0;
 
   const roomStatusItems = [
     { label: 'Có khách',  count: stats.occupied,    total: stats.total, cls: '',        color: '#A5B4FC', icon: <Home size={14} /> },
@@ -36,7 +42,7 @@ export default function DashboardPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title"><BarChart2 size={22} /> Tổng quan hôm nay</h1>
-          <p className="page-subtitle">Thứ Bảy, 14 tháng 3 năm 2026</p>
+          <p className="page-subtitle">Ngày {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
         <div className="page-actions">
           <Link href="/reports" className="btn btn-dark btn-sm"><BarChart size={14}/> Báo cáo chi tiết</Link>
@@ -81,9 +87,9 @@ export default function DashboardPage() {
         <div className="stat-card">
           <div className="stat-icon success"><Wallet size={22} /></div>
           <div className="stat-info">
-            <div className="stat-label">Doanh thu tháng 3</div>
-            <div className="stat-value">{fmtShort(52100000)}</div>
-            <div className="stat-change up"><ArrowUp size={11}/> +35% so với T2</div>
+            <div className="stat-label">Doanh thu tháng {currentMonthInt}</div>
+            <div className="stat-value">{fmtShort(currentMonthRevenue)}</div>
+            <div className="stat-change up"><ArrowUp size={11}/> N/A so với tháng trước</div>
           </div>
         </div>
       </div>
@@ -103,7 +109,7 @@ export default function DashboardPage() {
               <div className="bar-item" key={r.month}>
                 <div className="bar-value">{fmtShort(r.revenue)}</div>
                 <div
-                  className={`bar-fill${r.month === 'T3' ? ' highest' : ''}`}
+                  className={`bar-fill${r.month === currentMonthStr ? ' highest' : ''}`}
                   style={{ height: `${Math.round((r.revenue / maxRev) * 100)}%` }}
                 />
                 <div className="bar-label">{r.month}</div>
@@ -112,9 +118,9 @@ export default function DashboardPage() {
           </div>
           <div style={{ display:'flex', gap:16, marginTop:10, fontSize:12, color:'var(--text-muted)' }}>
             <span style={{ display:'flex', alignItems:'center', gap:5 }}>
-              <MapPin size={12}/> Tháng hiện tại:&nbsp;<strong style={{color:'var(--text-primary)'}}>52.1M VNĐ</strong>
+              <MapPin size={12}/> Tháng hiện tại ({currentMonthStr}):&nbsp;<strong style={{color:'var(--text-primary)'}}>{fmtShort(currentMonthRevenue)} VNĐ</strong>
             </span>
-            <span>Cao nhất: <strong style={{color:'var(--text-primary)'}}>82.1M VNĐ (T7)</strong></span>
+            <span>Cao nhất: <strong style={{color:'var(--text-primary)'}}>{fmtShort(maxRev)} VNĐ ({maxMonthStr})</strong></span>
           </div>
         </div>
 

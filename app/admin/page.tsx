@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { useHotel } from '@/context/HotelContext';
-import { activityLog, roomTypes } from '@/context/HotelContext';
+import { roomTypes } from '@/context/HotelContext';
 import { useModal } from '@/components/ui/UIProvider';
 import { useToast } from '@/components/ui/UIProvider';
 import { fmtShort } from '@/lib/utils';
-import { Settings, Users, Building, List, Globe, Plus, Edit2, Lock, Unlock } from 'lucide-react';
+import { Settings, Users, Building, List, Globe, Plus, Edit2, Lock, Unlock, Coins } from 'lucide-react';
 
 const roleColors: Record<string,{color:string;bg:string;label:string}> = {
   admin:        { color:'#a78bfa', bg:'rgba(139,92,246,0.15)',  label:'Admin' },
@@ -29,8 +29,8 @@ const typeColors: Record<string,string> = {
 };
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'users'|'rooms'|'log'|'channel'>('users');
-  const { users, addUser, updateUser } = useHotel();
+  const [activeTab, setActiveTab] = useState<'users'|'rooms'|'log'|'channel'|'pricing'>('users');
+  const { users, addUser, updateUser, activityLog, loading } = useHotel();
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
 
@@ -52,12 +52,16 @@ export default function AdminPage() {
         </div>
       </div>
     ), [
-      { label: 'Tạo tài khoản', cls: 'btn-primary', onClick: () => {
+      { label: 'Tạo tài khoản', cls: 'btn-primary', onClick: async () => {
         const name     = (document.getElementById('nu_name') as HTMLInputElement)?.value.trim();
         const username = (document.getElementById('nu_username') as HTMLInputElement)?.value.trim();
         if (!name||!username) { toast('Vui lòng điền đầy đủ','warn'); return; }
-        addUser({ name, username, role:(document.getElementById('nu_role') as HTMLSelectElement)?.value as any, status:'active', lastLogin:'—' });
-        closeModal(); toast(`Tài khoản ${name} đã được tạo!`,'success');
+        try {
+          await addUser({ name, username, role:(document.getElementById('nu_role') as HTMLSelectElement)?.value as any, status:'active', lastLogin:'—' });
+          closeModal(); toast(`Tài khoản ${name} đã được tạo!`,'success');
+        } catch (e: any) {
+          toast(e.message, 'error');
+        }
       }},
       { label: 'Hủy', cls: 'btn-ghost', onClick: closeModal },
     ]);
@@ -76,9 +80,13 @@ export default function AdminPage() {
         </div>
       </div>
     ), [
-      { label: 'Lưu thay đổi', cls: 'btn-primary', onClick: () => {
-        updateUser(id, { name:(document.getElementById('eu_name') as HTMLInputElement)?.value, role:(document.getElementById('eu_role') as HTMLSelectElement)?.value as any });
-        closeModal(); toast('Đã cập nhật người dùng!','success');
+      { label: 'Lưu thay đổi', cls: 'btn-primary', onClick: async () => {
+        try {
+          await updateUser(id, { name:(document.getElementById('eu_name') as HTMLInputElement)?.value, role:(document.getElementById('eu_role') as HTMLSelectElement)?.value as any });
+          closeModal(); toast('Đã cập nhật người dùng!','success');
+        } catch (e: any) {
+          toast(e.message, 'error');
+        }
       }},
       { label: 'Hủy', cls: 'btn-ghost', onClick: closeModal },
     ]);
@@ -104,6 +112,7 @@ export default function AdminPage() {
         <button className={`tab-btn${activeTab==='users'?' active':''}`} onClick={()=>setActiveTab('users')}><Users size={15}/> Người dùng</button>
         <button className={`tab-btn${activeTab==='rooms'?' active':''}`} onClick={()=>setActiveTab('rooms')}><Building size={15}/> Cấu hình phòng</button>
         <button className={`tab-btn${activeTab==='log'?' active':''}`} onClick={()=>setActiveTab('log')}><List size={15}/> Lịch sử thao tác</button>
+        <button className={`tab-btn${activeTab==='pricing'?' active':''}`} onClick={()=>setActiveTab('pricing')}><Coins size={15}/> Cấu hình giá</button>
         <button className={`tab-btn${activeTab==='channel'?' active':''}`} onClick={()=>setActiveTab('channel')}><Globe size={15}/> Channel Manager</button>
       </div>
 
@@ -112,7 +121,7 @@ export default function AdminPage() {
         <>
           <div style={{display:'flex',justifyContent:'space-between',marginBottom:16,alignItems:'center'}}>
             <div className="section-label">Danh sách tài khoản</div>
-            <button className="btn btn-primary btn-sm" onClick={openAddUser}><Plus size={14}/> Thêm người dùng</button>
+            <button className="btn btn-primary btn-sm" onClick={openAddUser} disabled={loading}><Plus size={14}/> Thêm người dùng</button>
           </div>
           <div className="card" style={{marginBottom:20}}>
             <div className="card-header"><span className="card-title">Ma trận phân quyền</span></div>
@@ -149,8 +158,8 @@ export default function AdminPage() {
                         <td style={{fontSize:12,color:'var(--text-muted)'}}>{u.lastLogin}</td>
                         <td>
                           <div style={{display:'flex',gap:4}}>
-                            <button className="btn btn-ghost btn-sm" onClick={()=>editUser(u.id)}><Edit2 size={13}/></button>
-                            {u.role!=='admin'&&<button className="btn btn-ghost btn-sm" onClick={()=>{updateUser(u.id,{status:u.status==='active'?'inactive':'active'});toast(`Tài khoản ${u.name} đã ${u.status==='active'?'khóa':'mở'}!`,'success');}}>
+                            <button className="btn btn-ghost btn-sm" onClick={()=>editUser(u.id)} disabled={loading}><Edit2 size={13}/></button>
+                            {u.role!=='admin'&&<button className="btn btn-ghost btn-sm" onClick={()=>{updateUser(u.id,{status:u.status==='active'?'inactive':'active'});toast(`Tài khoản ${u.name} đã ${u.status==='active'?'khóa':'mở'}!`,'success');}} disabled={loading}>
                               {u.status==='active'?<Lock size={13}/>:<Unlock size={13}/>}
                             </button>}
                           </div>
@@ -277,6 +286,52 @@ export default function AdminPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </>
+      )}
+      {activeTab === 'pricing' && (
+        <>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:16,alignItems:'center'}}>
+            <div className="section-label">Quản lý giá theo mùa</div>
+            <button className="btn btn-primary btn-sm" onClick={() => toast('Đang lưu cấu hình giá...', 'info')}><Plus size={14}/> Lưu cấu hình</button>
+          </div>
+          <div className="card" style={{padding:0, overflow:'hidden', marginBottom:20}}>
+            <div className="table-wrapper">
+              <table className="table striped">
+                <thead>
+                  <tr>
+                    <th>Loại phòng</th>
+                    <th>Giá cơ bản (Ngày thường)</th>
+                    <th>Giá Cuối tuần (T6-CN)</th>
+                    <th>Mùa cao điểm (Multiplier)</th>
+                    <th>Ngày áp dụng mùa cao điểm</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {roomTypes.map(rt => (
+                    <tr key={rt.id}>
+                      <td style={{fontWeight:700}}>{rt.name}</td>
+                      <td><input type="text" className="form-input" style={{width:120, padding:'4px 8px', height:32}} defaultValue={fmtShort(rt.basePrice)}/></td>
+                      <td><input type="text" className="form-input" style={{width:120, padding:'4px 8px', height:32}} defaultValue={fmtShort(rt.basePrice * 1.2)}/></td>
+                      <td><input type="number" className="form-input" style={{width:80, padding:'4px 8px', height:32}} defaultValue={1.5} step={0.1}/></td>
+                      <td style={{fontSize:11, color:'var(--text-muted)'}}>01/06 → 31/08</td>
+                      <td><button className="btn btn-ghost btn-sm" onClick={() => toast('Cập nhật giá thành công!', 'success')}><Edit2 size={13}/></button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div className="card">
+            <div className="card-header"><span className="card-title">Cấu hình Ngày lễ / Sự kiện</span></div>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr 100px', gap:10, alignItems:'end'}}>
+              <div className="form-group"><label className="form-label">Tên sự kiện</label><input type="text" className="form-input" defaultValue="Tết Nguyên Đán"/></div>
+              <div className="form-group"><label className="form-label">Khoảng ngày</label><input type="text" className="form-input" defaultValue="29/01/2026 - 05/02/2026"/></div>
+              <div className="form-group"><label className="form-label">Phụ thu (%)</label><input type="number" className="form-input" defaultValue={50}/></div>
+              <button className="btn btn-primary" style={{height:42}}>Thêm</button>
             </div>
           </div>
         </>

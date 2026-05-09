@@ -35,6 +35,14 @@ export async function POST(req: Request) {
   const reservation: Reservation = { id: newId.reservation(), ...body };
   db.reservations.unshift(reservation);
 
+  // Auto-occupy room if checked-in (Walk-in)
+  if (reservation.status === 'checkedin' && reservation.roomId) {
+    const rIdx = db.rooms.findIndex(rm => rm.id === reservation.roomId);
+    if (rIdx !== -1) {
+      db.rooms[rIdx].status = 'occupied';
+    }
+  }
+
   appendLog(db, 'Hệ thống', `Tạo đặt phòng mới ${reservation.id} – ${reservation.guestName}`, 'booking');
 
   writeDB(db);

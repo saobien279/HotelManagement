@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { readDB } from '@/lib/db';
+import { TODAY } from '@/lib/utils';
 
 // ── GET /api/stats ───────────────────────────
 // Returns real-time dashboard KPIs computed from DB
@@ -27,11 +28,11 @@ export async function GET() {
     .reduce((s, svc) => s + svc.price * svc.qty, 0);
 
   const checkInToday  = reservations.filter(r =>
-    (r.status === 'confirmed' || r.status === 'deposit') && r.checkIn <= '2026-03-14'
+    (r.status === 'confirmed' || r.status === 'deposit') && r.checkIn <= TODAY
   ).length;
 
   const checkOutToday = reservations.filter(r =>
-    r.status === 'checkedin' && r.checkOut <= '2026-03-14'
+    r.status === 'checkedin' && r.checkOut <= TODAY
   ).length;
 
   const lowStockItems = db.inventory.filter(i => i.stock <= i.minStock).length;

@@ -30,7 +30,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const toggleSidebar = useCallback(() => setCollapsed(c => !c), []);
   const closeMobile   = useCallback(() => setMobileOpen(false), []);
 
-  const today = new Date('2026-03-14').toLocaleDateString('vi-VN', {
+  const today = new Date().toLocaleDateString('vi-VN', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 

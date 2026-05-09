@@ -102,8 +102,17 @@ export default function ReservationPage() {
           </div>
           <div className="form-group">
             <label className="form-label">Ngày đi <span style={{color:'var(--color-danger)'}}>*</span></label>
-            <input id="nb_checkout" type="date" className="form-input" defaultValue="2026-03-15"/>
+            <input id="nb_checkout" type="date" className="form-input" defaultValue={new Date(new Date(TODAY).getTime() + 86400000).toISOString().split('T')[0]}/>
           </div>
+        </div>
+        <div className="form-group">
+          <label className="form-label">Phòng (Tuỳ chọn)</label>
+          <select id="nb_room" className="form-select">
+            <option value="">-- Chưa gán phòng --</option>
+            {rooms.filter(rm => rm.status === 'vacant').map(rm => (
+              <option key={rm.id} value={rm.id}>Phòng {rm.id} ({roomTypeLabel[rm.type]})</option>
+            ))}
+          </select>
         </div>
         <div className="form-row">
           <div className="form-group">
@@ -133,7 +142,9 @@ export default function ReservationPage() {
         const rt     = roomTypes.find(t => t.id === type)!;
         const nights = calcNights(checkIn, checkOut);
         addReservation({
-          guestName: name, phone, roomId: null, roomType: type, checkIn, checkOut,
+          guestName: name, phone, 
+          roomId:   (document.getElementById('nb_room') as HTMLSelectElement).value || null,
+          roomType: type, checkIn, checkOut,
           adults:   +(document.getElementById('nb_adults') as HTMLInputElement).value,
           children: +(document.getElementById('nb_children') as HTMLInputElement).value,
           status:   'confirmed',
@@ -509,9 +520,9 @@ export default function ReservationPage() {
                             )}
                             {r.status==='checkedin' && (
                               <button className="btn btn-dark btn-sm" onClick={() => {
-                                updateReservationStatus(r.id, 'checkedout');
-                                toast(`Check-out ${r.guestName} hoàn tất`, 'success');
-                              }}>Check-out</button>
+                                window.location.href = '/frontdesk';
+                                toast('Đang chuyển hướng sang Tiền sảnh để thanh toán...', 'info');
+                              }}>Thanh toán (Tiền sảnh)</button>
                             )}
                             {!['cancelled','checkedout'].includes(r.status) && (
                               <button className="btn btn-danger btn-sm" onClick={() => {

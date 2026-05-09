@@ -1310,3 +1310,69 @@ body {
   .page-container { padding: 0; }
   .card { box-shadow: none; border: 1px solid #ccc; }
 }
+
+/* ─── Print Styles (Invoice Printing) ─── */
+@media print {
+  /* Hide all UI elements except the modal content */
+  .sidebar, 
+  .header, 
+  .page-header, 
+  .tabs, 
+  .stats-grid, 
+  .content-grid, 
+  .card, 
+  .btn,
+  nav,
+  aside,
+  .activity-dot {
+    display: none !important;
+  }
+
+  /* Make modal content full width and centered */
+  body {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .modal-container {
+    position: static !important;
+    background: white !important;
+    padding: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  .modal-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .modal-header, .modal-footer {
+    display: none !important;
+  }
+
+  /* Invoice styling */
+  .info-row {
+    margin-bottom: 8px !important;
+    border-bottom: 1px dotted #eee !important;
+  }
+
+  .divider {
+    border-top: 1px solid #000 !important;
+    margin: 15px 0 !important;
+  }
+
+  /* Ensure text is black and high contrast */
+  * {
+    color: black !important;
+    text-shadow: none !important;
+  }
+}

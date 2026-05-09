@@ -17,18 +17,28 @@ export const fmtShort = (n: number): string => {
 /** Format: dd/MM/yyyy */
 export const fmtDate = (dateStr: string | null | undefined): string => {
   if (!dateStr) return '—';
-  const [y, m, d] = dateStr.split('-');
+  // Handle both YYYY-MM-DD and YYYY/MM/DD
+  const parts = dateStr.includes('-') ? dateStr.split('-') : dateStr.split('/');
+  if (parts.length !== 3) return dateStr;
+  const [y, m, d] = parts;
   return `${d}/${m}/${y}`;
 };
 
 /** Nights between two date strings */
-export const calcNights = (checkIn: string, checkOut: string): number =>
-  Math.max(1, Math.round(
-    (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86_400_000
-  ));
+export const calcNights = (checkIn: string, checkOut: string): number => {
+  if (!checkIn || !checkOut) return 1;
+  const d1 = new Date(checkIn);
+  const d2 = new Date(checkOut);
+  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 1;
+  // Ensure we compare start of day to start of day
+  d1.setHours(0,0,0,0);
+  d2.setHours(0,0,0,0);
+  const diff = d2.getTime() - d1.getTime();
+  return Math.max(1, Math.round(diff / 86_400_000));
+};
 
-/** Today's date string YYYY-MM-DD (demo: 2026-03-14) */
-export const TODAY = '2026-03-14';
+/** Today's date string YYYY-MM-DD */
+export const TODAY = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
 export const statusLabel: Record<string, string> = {
   vacant:      'Phòng trống',

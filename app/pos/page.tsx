@@ -6,7 +6,7 @@ import { initialInventory } from '@/lib/data';
 import { roomTypes } from '@/context/HotelContext';
 import { useModal } from '@/components/ui/UIProvider';
 import { useToast } from '@/components/ui/UIProvider';
-import { fmtShort } from '@/lib/utils';
+import { fmtShort, TODAY } from '@/lib/utils';
 import { ShoppingCart, Clock, CheckCircle, Coins, ConciergeBell, Package, AlertTriangle, Coffee, Shirt, Utensils, Flower2, Map, Plane, Car } from 'lucide-react';
 
 const serviceTypes = [
@@ -21,7 +21,7 @@ const serviceTypes = [
 
 export default function POSPage() {
   const [activeTab, setActiveTab] = useState<'services'|'inventory'>('services');
-  const { services, reservations, addService } = useHotel();
+  const { services, reservations, addService, billService, adjustInventory, inventory } = useHotel();
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
 
@@ -52,29 +52,38 @@ export default function POSPage() {
         const qty   = +(document.getElementById('svc_qty') as HTMLInputElement)?.value;
         const price2= +(document.getElementById('svc_price') as HTMLInputElement)?.value;
         if (!bkId) { toast('Chưa có khách đang ở','warn'); return; }
-        addService({ bookingId: bkId, name, qty, unit:'lần', price: price2, date:'2026-03-14', status:'pending' });
+        addService({ bookingId: bkId, name, qty, unit:'lần', price: price2, date: TODAY, status:'pending' });
         closeModal(); toast(`Đã thêm dịch vụ ${name}!`,'success');
       }},
       { label: 'Hủy', cls: 'btn-ghost', onClick: closeModal },
     ]);
   };
 
-  const openImport = (name: string) => {
-    openModal(`Nhập kho: ${name}`, (
+  const openImport = (item: any) => {
+    openModal(`Nhập kho: ${item.name}`, (
       <div>
         <div className="form-row">
-          <div className="form-group"><label className="form-label">Số lượng nhập</label><input type="number" className="form-input" defaultValue={50} min={1}/></div>
-          <div className="form-group"><label className="form-label">Nhà cung cấp</label><input type="text" className="form-input" placeholder="Công ty ABC"/></div>
+          <div className="form-group"><label className="form-label">Số lượng nhập</label><input id="inv_qty" type="number" className="form-input" defaultValue={50} min={1}/></div>
+          <div className="form-group"><label className="form-label">Nhà cung cấp</label><input id="inv_vendor" type="text" className="form-input" placeholder="Công ty ABC"/></div>
         </div>
-        <div className="form-group"><label className="form-label">Ghi chú</label><input type="text" className="form-input" placeholder="Lô hàng tháng 3..."/></div>
+        <div className="form-group"><label className="form-label">Ghi chú</label><input id="inv_note" type="text" className="form-input" placeholder="Lô hàng tháng 3..."/></div>
       </div>
     ), [
-      { label: 'Lưu nhập kho', cls: 'btn-primary', onClick: () => { closeModal(); toast(`Đã nhập kho ${name}!`,'success'); }},
+      { label: 'Lưu nhập kho', cls: 'btn-primary', onClick: async () => { 
+        const qty = +(document.getElementById('inv_qty') as HTMLInputElement)?.value || 0;
+        try {
+          await adjustInventory(item.id, qty);
+          closeModal(); 
+          toast(`Đã nhập kho ${qty} ${item.unit} cho ${item.name}!`,'success'); 
+        } catch (e: any) {
+          toast(e.message, 'error');
+        }
+      }},
       { label: 'Hủy', cls: 'btn-ghost', onClick: closeModal },
     ]);
   };
 
-  const lowStock = initialInventory.filter(i=>i.stock<=i.minStock);
+  const lowStock = inventory.filter(i=>i.stock<=i.minStock);
 
   return (
     <>
@@ -138,7 +147,14 @@ export default function POSPage() {
                       <td style={{fontWeight:700,color:'#A5B4FC'}}>{fmtShort(s.price*s.qty)}</td>
                       <td style={{color:'var(--text-muted)'}}>{s.date}</td>
                       <td>{s.status==='billed'?<span className="badge badge-confirmed">Đã tính</span>:<span className="badge badge-pending">Chờ tính</span>}</td>
-                      <td>{s.status==='pending'&&<button className="btn btn-primary btn-sm" onClick={()=>toast('Đã tính vào hóa đơn!','success')}>Tính tiền</button>}</td>
+                      <td>{s.status==='pending'&&<button className="btn btn-primary btn-sm" onClick={async ()=>{
+                        try {
+                          await billService(s.id);
+                          toast('Đã tính vào hóa đơn!','success');
+                        } catch (e: any) {
+                          toast(e.message, 'error');
+                        }
+                      }}>Tính tiền</button>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -166,7 +182,7 @@ export default function POSPage() {
               <table className="table">
                 <thead><tr><th>Tên hàng</th><th>Danh mục</th><th>Đơn vị</th><th>Tồn kho</th><th>Tối thiểu</th><th>Đơn giá</th><th>Giá trị tồn</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
                 <tbody>
-                  {initialInventory.map(i=>{
+                  {inventory.map(i=>{
                     const isLow=i.stock<=i.minStock;
                     return (
                       <tr key={i.id} style={{background:isLow?'rgba(239,68,68,0.04)':''}}>
@@ -178,7 +194,7 @@ export default function POSPage() {
                         <td>{fmtShort(i.cost)}</td>
                         <td style={{fontWeight:600}}>{fmtShort(i.stock*i.cost)}</td>
                         <td>{isLow?<span className="badge badge-maintenance">Sắp hết</span>:<span className="badge badge-vacant">Đủ</span>}</td>
-                        <td><button className="btn btn-ghost btn-sm" onClick={()=>openImport(i.name)}>Nhập</button></td>
+                         <td><button className="btn btn-ghost btn-sm" onClick={()=>openImport(i)}>Nhập</button></td>
                       </tr>
                     );
                   })}

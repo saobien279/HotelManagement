@@ -10,13 +10,12 @@ import {
 } from '@/lib/data';
 import type {
   Room, Reservation, Service, User, InventoryItem,
-  RoomStatus, ReservationStatus,
+  RoomStatus, ReservationStatus, ActivityLog,
 } from '@/lib/types';
 
 /* ─── Re-export static / analytics data ──────── */
 export { roomTypes, guests, revenueMonthly, revenueBySource };
-export { staticLog as activityLog };
-export { initialInventory as inventory } from '@/lib/data';
+export { initialInventory } from '@/lib/data';
 
 /* ─── API helpers ─────────────────────────────── */
 async function api<T>(url: string, opts?: RequestInit): Promise<T> {
@@ -49,12 +48,13 @@ interface HotelContextValue {
   services: Service[];
   users: User[];
   inventory: InventoryItem[];
+  activityLog: ActivityLog[];
   stats: HotelStats | null;
   loading: boolean;
   // Mutators – all async, call API → refresh state
   updateRoomStatus: (roomId: string, status: RoomStatus) => Promise<void>;
   addReservation: (data: Omit<Reservation, 'id'>) => Promise<void>;
-  updateReservationStatus: (id: string, status: ReservationStatus) => Promise<void>;
+  updateReservationStatus: (id: string, status: ReservationStatus, extra?: any) => Promise<void>;
   addService: (data: Omit<Service, 'id'>) => Promise<void>;
   billService: (id: string) => Promise<void>;
   addUser: (data: Omit<User, 'id'>) => Promise<void>;
@@ -73,6 +73,7 @@ export function HotelProvider({ children }: { children: ReactNode }) {
   const [services, setServices] = useState<Service[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [stats, setStats] = useState<HotelStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -82,14 +83,15 @@ export function HotelProvider({ children }: { children: ReactNode }) {
   const fetchServices = useCallback(async () => setServices(await api<Service[]>('/api/services')), []);
   const fetchUsers = useCallback(async () => setUsers(await api<User[]>('/api/users')), []);
   const fetchInventory = useCallback(async () => setInventory(await api<InventoryItem[]>('/api/inventory')), []);
+  const fetchActivityLog = useCallback(async () => setActivityLog(await api<ActivityLog[]>('/api/logs')), []);
   const fetchStats = useCallback(async () => setStats(await api<HotelStats>('/api/stats')), []);
 
   const refreshAll = useCallback(async () => {
     await Promise.all([
       fetchRooms(), fetchReservations(), fetchServices(),
-      fetchUsers(), fetchInventory(), fetchStats(),
+      fetchUsers(), fetchInventory(), fetchActivityLog(), fetchStats(),
     ]);
-  }, [fetchRooms, fetchReservations, fetchServices, fetchUsers, fetchInventory, fetchStats]);
+  }, [fetchRooms, fetchReservations, fetchServices, fetchUsers, fetchInventory, fetchActivityLog, fetchStats]);
 
   useEffect(() => {
     refreshAll().finally(() => setLoading(false));
@@ -103,11 +105,11 @@ export function HotelProvider({ children }: { children: ReactNode }) {
 
   const addReservation = useCallback(async (data: Omit<Reservation, 'id'>) => {
     await api('/api/reservations', { method: 'POST', body: JSON.stringify(data) });
-    await Promise.all([fetchReservations(), fetchStats()]);
+    await Promise.all([fetchReservations(), fetchRooms(), fetchStats()]);
   }, [fetchReservations, fetchStats]);
 
-  const updateReservationStatus = useCallback(async (id: string, status: ReservationStatus) => {
-    await api(`/api/reservations/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  const updateReservationStatus = useCallback(async (id: string, status: ReservationStatus, extra?: any) => {
+    await api(`/api/reservations/${id}`, { method: 'PATCH', body: JSON.stringify({ status, ...extra }) });
     await Promise.all([fetchReservations(), fetchRooms(), fetchStats()]);
   }, [fetchReservations, fetchRooms, fetchStats]);
 
@@ -158,7 +160,7 @@ export function HotelProvider({ children }: { children: ReactNode }) {
 
   return (
     <HotelContext.Provider value={{
-      rooms, reservations, services, users, inventory, stats, loading,
+      rooms, reservations, services, users, inventory, activityLog, stats, loading,
       updateRoomStatus, addReservation, updateReservationStatus,
       addService, billService, addUser, updateUser, adjustInventory,
       refreshAll, getStats,
