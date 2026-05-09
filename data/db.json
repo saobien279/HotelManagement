@@ -129,6 +129,96 @@
   ],
   "reservations": [
     {
+      "id": "BK893904",
+      "guestName": "Nguyễn Minh B",
+      "phone": "0987712362",
+      "roomId": "303",
+      "roomType": "FAM",
+      "checkIn": "2026-05-09",
+      "checkOut": "2026-05-19",
+      "adults": 1,
+      "children": 0,
+      "status": "checkedout",
+      "source": "direct",
+      "note": "",
+      "total": 12000000
+    },
+    {
+      "id": "BK557351",
+      "guestName": "Nguyễn Cecil",
+      "phone": "098712367312",
+      "roomId": "203",
+      "roomType": "TWN",
+      "checkIn": "2026-05-09",
+      "checkOut": "2026-05-10",
+      "adults": 2,
+      "children": 0,
+      "status": "checkedout",
+      "source": "agoda",
+      "note": "",
+      "total": 600000
+    },
+    {
+      "id": "BK234201",
+      "guestName": "Nguyễn Cecil",
+      "phone": "098712367312",
+      "roomId": "105",
+      "roomType": "DBL",
+      "checkIn": "2026-05-09",
+      "checkOut": "2026-05-10",
+      "adults": 2,
+      "children": 0,
+      "status": "checkedout",
+      "source": "booking",
+      "note": "",
+      "total": 550000
+    },
+    {
+      "id": "BK560405",
+      "guestName": "Nguyễn Minh B",
+      "phone": "0987712362",
+      "roomId": "201",
+      "roomType": "DLX",
+      "checkIn": "2026-05-09",
+      "checkOut": "2026-05-11",
+      "adults": 1,
+      "children": 0,
+      "status": "checkedout",
+      "source": "direct",
+      "note": "none",
+      "total": 1700000
+    },
+    {
+      "id": "BK205631",
+      "guestName": "Nguyễn Cecil",
+      "phone": "098712367312",
+      "roomId": "303",
+      "roomType": "FAM",
+      "checkIn": "2026-05-09",
+      "checkOut": "2026-05-10",
+      "adults": 2,
+      "children": 1231,
+      "status": "checkedout",
+      "source": "booking",
+      "note": "",
+      "total": 1200000
+    },
+    {
+      "id": "BK136971",
+      "guestName": "Nguyễn Cecil",
+      "phone": "098712367312",
+      "roomId": "301",
+      "roomType": "SGL",
+      "checkIn": "2026-05-09",
+      "checkOut": "2026-05-10",
+      "adults": 2,
+      "children": 1,
+      "status": "checkedout",
+      "source": "expedia",
+      "note": "",
+      "total": 350000
+    },
+    {
       "id": "BK485562",
       "guestName": "Nguyễn Cecil",
       "phone": "098712367312",
@@ -534,6 +624,166 @@
       "price": 500000,
       "date": "2026-05-09",
       "status": "billed"
+    },
+    {
+      "id": "SV584927",
+      "bookingId": "BK560405",
+      "name": "Nhà hàng",
+      "qty": 1,
+      "unit": "lần",
+      "price": 900000,
+      "date": "2026-05-09",
+      "status": "billed"
+    },
+    {
+      "id": "SV276131",
+      "bookingId": "BK234201",
+      "name": "Minibar",
+      "qty": 1,
+      "unit": "lần",
+      "price": 150000,
+      "date": "2026-05-09",
+      "status": "billed"
+    },
+    {
+      "id": "SV282495",
+      "bookingId": "BK234201",
+      "name": "Giặt ủi",
+      "qty": 1,
+      "unit": "lần",
+      "price": 80000,
+      "date": "2026-05-09",
+      "status": "billed"
+    },
+    {
+      "id": "SV284107",
+      "bookingId": "BK234201",
+      "name": "Tour du lịch",
+      "qty": 1,
+      "unit": "lần",
+      "price": 250000,
+      "date": "2026-05-09",
+      "status": "billed"
+    },
+    {
+      "id": "SV285965",
+      "bookingId": "BK234201",
+      "name": "Spa",
+      "qty": 1,
+      "unit": "lần",
+      "price": 500000,
+      "date": "2026-05-09",
+      "status": "billed"
+    },
+    {
+      "id": "SV594544",
+      "bookingId": "BK557351",
+      "name": "Thuê xe",
+      "qty": 1,
+      "unit": "lần",
+      "price": 600000,
+      "date": "2026-05-09",
+      "status": "billed"
+    },
+    {
+      "id": "SV595646",
+      "bookingId": "BK557351",
+      "name": "Thuê xe",
+      "qty": 1,
+      "unit": "lần",
+      "price": 600000,
+      "date": "2026-05-09",
+      "status": "billed"
+    },
+    {
+      "id": "SV597076",
+      "bookingId": "BK557351",
+      "name": "Thuê xe",
+      "qty": 1,
+      "unit": "lần",
+      "price": 600000,
+      "date": "2026-05-09",
+      "status": "billed"
+    },
+    {
+      "id": "SV928366",
+      "bookingId": "BK893904",
+      "name": "Thuê xe",
+      "qty": 1,
+      "unit": "lần",
+      "price": 600000,
+      "date": "2026-05-09",
+      "status": "billed"
+    },
+    {
+      "id": "SV929725",
+      "bookingId": "BK893904",
+      "name": "Thuê xe",
+      "qty": 1,
+      "unit": "lần",
+      "price": 600000,
+      "date": "2026-05-09",
+      "status": "billed"
+    },
+    {
+      "id": "SV930819",
+      "bookingId": "BK893904",
+      "name": "Thuê xe",
+      "qty": 1,
+      "unit": "lần",
+      "price": 600000,
+      "date": "2026-05-09",
+      "status": "billed"
+    },
+    {
+      "id": "SV931924",
+      "bookingId": "BK893904",
+      "name": "Thuê xe",
+      "qty": 1,
+      "unit": "lần",
+      "price": 600000,
+      "date": "2026-05-09",
+      "status": "billed"
+    },
+    {
+      "id": "SV933163",
+      "bookingId": "BK893904",
+      "name": "Thuê xe",
+      "qty": 1,
+      "unit": "lần",
+      "price": 600000,
+      "date": "2026-05-09",
+      "status": "billed"
+    },
+    {
+      "id": "SV934243",
+      "bookingId": "BK893904",
+      "name": "Thuê xe",
+      "qty": 1,
+      "unit": "lần",
+      "price": 600000,
+      "date": "2026-05-09",
+      "status": "billed"
+    },
+    {
+      "id": "SV935210",
+      "bookingId": "BK893904",
+      "name": "Thuê xe",
+      "qty": 1,
+      "unit": "lần",
+      "price": 600000,
+      "date": "2026-05-09",
+      "status": "billed"
+    },
+    {
+      "id": "SV936993",
+      "bookingId": "BK893904",
+      "name": "Thuê xe",
+      "qty": 1,
+      "unit": "lần",
+      "price": 600000,
+      "date": "2026-05-09",
+      "status": "billed"
     }
   ],
   "inventory": [
@@ -669,6 +919,342 @@
     }
   ],
   "activityLog": [
+    {
+      "id": "L959091",
+      "time": "09:32",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Phòng 303: → vacant",
+      "type": "housekeeping"
+    },
+    {
+      "id": "L958124",
+      "time": "09:32",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Phòng 303: → maintenance",
+      "type": "housekeeping"
+    },
+    {
+      "id": "L955086",
+      "time": "09:32",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Check-out Nguyễn Minh B – Phòng 303",
+      "type": "invoice"
+    },
+    {
+      "id": "L936993",
+      "time": "09:32",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Thuê xe vào BK893904",
+      "type": "invoice"
+    },
+    {
+      "id": "L935210",
+      "time": "09:32",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Thuê xe vào BK893904",
+      "type": "invoice"
+    },
+    {
+      "id": "L934243",
+      "time": "09:32",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Thuê xe vào BK893904",
+      "type": "invoice"
+    },
+    {
+      "id": "L933163",
+      "time": "09:32",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Thuê xe vào BK893904",
+      "type": "invoice"
+    },
+    {
+      "id": "L931924",
+      "time": "09:32",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Thuê xe vào BK893904",
+      "type": "invoice"
+    },
+    {
+      "id": "L930819",
+      "time": "09:32",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Thuê xe vào BK893904",
+      "type": "invoice"
+    },
+    {
+      "id": "L929725",
+      "time": "09:32",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Thuê xe vào BK893904",
+      "type": "invoice"
+    },
+    {
+      "id": "L928366",
+      "time": "09:32",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Thuê xe vào BK893904",
+      "type": "invoice"
+    },
+    {
+      "id": "L893905",
+      "time": "09:31",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Tạo đặt phòng mới BK893904 – Nguyễn Minh B",
+      "type": "booking"
+    },
+    {
+      "id": "L608940",
+      "time": "09:26",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Phòng 203: → vacant",
+      "type": "housekeeping"
+    },
+    {
+      "id": "L606788",
+      "time": "09:26",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Check-out Nguyễn Cecil – Phòng 203",
+      "type": "invoice"
+    },
+    {
+      "id": "L597076",
+      "time": "09:26",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Thuê xe vào BK557351",
+      "type": "invoice"
+    },
+    {
+      "id": "L595646",
+      "time": "09:26",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Thuê xe vào BK557351",
+      "type": "invoice"
+    },
+    {
+      "id": "L594544",
+      "time": "09:26",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Thuê xe vào BK557351",
+      "type": "invoice"
+    },
+    {
+      "id": "L575788",
+      "time": "09:26",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Check-in Nguyễn Cecil – Phòng 203",
+      "type": "checkin"
+    },
+    {
+      "id": "L557352",
+      "time": "09:25",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Tạo đặt phòng mới BK557351 – Nguyễn Cecil",
+      "type": "booking"
+    },
+    {
+      "id": "L395837",
+      "time": "09:23",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Phòng 301: → vacant",
+      "type": "housekeeping"
+    },
+    {
+      "id": "L391877",
+      "time": "09:23",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Phòng 301: → reserved",
+      "type": "housekeeping"
+    },
+    {
+      "id": "L323412",
+      "time": "09:22",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Phòng 105: → vacant",
+      "type": "housekeeping"
+    },
+    {
+      "id": "L320381",
+      "time": "09:22",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Check-out Nguyễn Cecil – Phòng 105",
+      "type": "invoice"
+    },
+    {
+      "id": "L285965",
+      "time": "09:21",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Spa vào BK234201",
+      "type": "invoice"
+    },
+    {
+      "id": "L284107",
+      "time": "09:21",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Tour du lịch vào BK234201",
+      "type": "invoice"
+    },
+    {
+      "id": "L282495",
+      "time": "09:21",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Giặt ủi vào BK234201",
+      "type": "invoice"
+    },
+    {
+      "id": "L276131",
+      "time": "09:21",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Minibar vào BK234201",
+      "type": "invoice"
+    },
+    {
+      "id": "L250963",
+      "time": "09:20",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Check-in Nguyễn Cecil – Phòng 105",
+      "type": "checkin"
+    },
+    {
+      "id": "L234201",
+      "time": "09:20",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Tạo đặt phòng mới BK234201 – Nguyễn Cecil",
+      "type": "booking"
+    },
+    {
+      "id": "L617286",
+      "time": "09:10",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Phòng 201: → vacant",
+      "type": "housekeeping"
+    },
+    {
+      "id": "L614489",
+      "time": "09:10",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Check-out Nguyễn Minh B – Phòng 201",
+      "type": "invoice"
+    },
+    {
+      "id": "L602939",
+      "time": "09:10",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Tính tiền dịch vụ Nhà hàng – SV584927",
+      "type": "invoice"
+    },
+    {
+      "id": "L584927",
+      "time": "09:09",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Nhà hàng vào BK560405",
+      "type": "invoice"
+    },
+    {
+      "id": "L560406",
+      "time": "09:09",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Tạo đặt phòng mới BK560405 – Nguyễn Minh B",
+      "type": "booking"
+    },
+    {
+      "id": "L230029",
+      "time": "09:03",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Phòng 301: → vacant",
+      "type": "housekeeping"
+    },
+    {
+      "id": "L229277",
+      "time": "09:03",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Phòng 303: → vacant",
+      "type": "housekeeping"
+    },
+    {
+      "id": "L226774",
+      "time": "09:03",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Check-out Nguyễn Cecil – Phòng 303",
+      "type": "invoice"
+    },
+    {
+      "id": "L225318",
+      "time": "09:03",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Check-out Nguyễn Cecil – Phòng 301",
+      "type": "invoice"
+    },
+    {
+      "id": "L213104",
+      "time": "09:03",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Check-in Nguyễn Cecil – Phòng 303",
+      "type": "checkin"
+    },
+    {
+      "id": "L205631",
+      "time": "09:03",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Tạo đặt phòng mới BK205631 – Nguyễn Cecil",
+      "type": "booking"
+    },
+    {
+      "id": "L162717",
+      "time": "09:02",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Check-in Nguyễn Cecil – Phòng 301",
+      "type": "checkin"
+    },
+    {
+      "id": "L136971",
+      "time": "09:02",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Tạo đặt phòng mới BK136971 – Nguyễn Cecil",
+      "type": "booking"
+    },
     {
       "id": "L533917",
       "time": "08:52",

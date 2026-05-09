@@ -38,6 +38,12 @@ export async function PATCH(req: Request, { params }: Params) {
       else if (body.status === 'checkedout') {
         db.rooms[roomIdx].status = 'cleaning';
         db.rooms[roomIdx].guest  = null;
+
+        // Auto-bill all associated services
+        db.services.forEach(s => {
+          if (s.bookingId === id) s.status = 'billed';
+        });
+
         appendLog(db, 'Lễ tân', `Check-out ${updated.guestName} – Phòng ${targetRoomId}`, 'invoice');
       }
       else if (body.status === 'cancelled')  {

@@ -10,9 +10,9 @@ import {
   statusBadgeClass, sourceLabel, sourceCls, calcNights, TODAY,
 } from '@/lib/utils';
 import {
-  Calendar, LayoutGrid, List, Plus, Building2, Globe2, Search,
-  Users, Bed, Wrench, Sparkles, CheckCircle2, CalendarX,
-  Phone, MessageSquare, CreditCard, StickyNote,
+  Calendar, LayoutGrid, List, Plus, Search,
+  Wrench, Sparkles, CheckCircle2, CalendarX,
+  Phone, StickyNote,
 } from 'lucide-react';
 
 export default function ReservationPage() {
@@ -23,7 +23,7 @@ export default function ReservationPage() {
   const [listStatus, setListStatus]     = useState('all');
   const [listSource, setListSource]     = useState('all');
 
-  const { rooms, reservations, updateRoomStatus, updateReservationStatus, addReservation } = useHotel();
+  const { rooms, reservations, services, updateRoomStatus, updateReservationStatus, addReservation } = useHotel();
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
 
@@ -55,7 +55,14 @@ export default function ReservationPage() {
   const countByStatus = (s: string) => rooms.filter(r => r.status === s).length;
 
   // ── Open new booking modal ──────────────────────
-  const openNewBooking = () => {
+  const openAddBooking = () => {
+    const renderRoomOptions = (typeId: string) => {
+      const filtered = rooms.filter(rm => rm.status === 'vacant' && rm.type === typeId);
+      let html = '<option value="">-- Chưa gán phòng --</option>';
+      html += filtered.map(rm => `<option value="${rm.id}">Phòng ${rm.id}</option>`).join('');
+      return html;
+    };
+
     const form = (
       <div>
         <div className="form-row">
@@ -81,7 +88,10 @@ export default function ReservationPage() {
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">Loại phòng <span style={{color:'var(--color-danger)'}}>*</span></label>
-            <select id="nb_type" className="form-select">
+            <select id="nb_type" className="form-select" onChange={(e) => {
+              const roomSel = document.getElementById('nb_room') as HTMLSelectElement;
+              if (roomSel) roomSel.innerHTML = renderRoomOptions(e.target.value);
+            }}>
               {roomTypes.map(t => <option key={t.id} value={t.id}>{t.name} ({t.id}) – {fmtShort(t.basePrice)}/đêm</option>)}
             </select>
           </div>
@@ -107,12 +117,8 @@ export default function ReservationPage() {
         </div>
         <div className="form-group">
           <label className="form-label">Phòng (Tuỳ chọn)</label>
-          <select id="nb_room" className="form-select">
-            <option value="">-- Chưa gán phòng --</option>
-            {rooms.filter(rm => rm.status === 'vacant').map(rm => (
-              <option key={rm.id} value={rm.id}>Phòng {rm.id} ({roomTypeLabel[rm.type]})</option>
-            ))}
-          </select>
+          <select id="nb_room" className="form-select" dangerouslySetInnerHTML={{ __html: renderRoomOptions(roomTypes[0].id) }} />
+          <div style={{fontSize:11, color:'var(--text-muted)', marginTop:4}}>Chỉ hiển thị các phòng trống của loại phòng đã chọn.</div>
         </div>
         <div className="form-row">
           <div className="form-group">
@@ -168,7 +174,6 @@ export default function ReservationPage() {
 
     openModal(`Phòng ${room.id} – ${rt.name}`, (
       <div>
-        {/* Room info */}
         <div style={{ background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', padding:14, marginBottom:16, display:'flex', gap:16, flexWrap:'wrap' }}>
           <div style={{ flex:1 }}>
             <div style={{ fontSize:11, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:0.5, marginBottom:6 }}>Thông tin phòng</div>
@@ -187,7 +192,6 @@ export default function ReservationPage() {
           </div>
         </div>
 
-        {/* Guest info if occupied */}
         {res && (
           <div style={{ background:'var(--color-info-bg)', borderRadius:'var(--radius-md)', padding:14, marginBottom:16, border:'1px solid var(--color-info-border)' }}>
             <div style={{ fontSize:11, fontWeight:700, color:'var(--color-info)', textTransform:'uppercase', letterSpacing:0.5, marginBottom:8 }}>Khách đang ở</div>
@@ -200,7 +204,6 @@ export default function ReservationPage() {
           </div>
         )}
 
-        {/* Status update */}
         <div className="form-group">
           <label className="form-label">Cập nhật trạng thái phòng</label>
           <select className="form-select" id="roomStatusSel" defaultValue={room.status}>
@@ -223,7 +226,6 @@ export default function ReservationPage() {
     ]);
   };
 
-  // Legend counts
   const legendData = [
     { status:'vacant',      label:'Trống',     color:'var(--color-success)', count: countByStatus('vacant') },
     { status:'occupied',    label:'Có khách',   color:'var(--accent-1)',      count: countByStatus('occupied') },
@@ -234,7 +236,6 @@ export default function ReservationPage() {
 
   return (
     <>
-      {/* Header */}
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -244,11 +245,10 @@ export default function ReservationPage() {
           <p className="page-subtitle">Quản lý tình trạng phòng và đơn đặt phòng theo thời gian thực</p>
         </div>
         <div className="page-actions">
-          <button className="btn btn-primary" onClick={openNewBooking}><Plus size={15}/> Đặt phòng mới</button>
+          <button className="btn btn-primary" onClick={openAddBooking}><Plus size={15}/> Đặt phòng mới</button>
         </div>
       </div>
 
-      {/* Legend Summary */}
       <div className="legend">
         {legendData.map(l => (
           <div className="legend-item" key={l.status}
@@ -264,7 +264,6 @@ export default function ReservationPage() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="tabs">
         <button className={`tab-btn${activeTab==='map'?' active':''}`} onClick={() => setActiveTab('map')}>
           <LayoutGrid size={14}/> Sơ đồ phòng
@@ -277,7 +276,6 @@ export default function ReservationPage() {
         </button>
       </div>
 
-      {/* ── MAP TAB ── */}
       {activeTab === 'map' && (
         <div>
           <div className="bento-filters-bar">
@@ -319,7 +317,6 @@ export default function ReservationPage() {
                   {floorRooms.map(room => {
                     const rt  = roomTypes.find(t => t.id === room.type)!;
                     const res = reservations.find(r => r.roomId === room.id && r.status === 'checkedin');
-                    // nights elapsed since check-in
                     const dayStay = res
                       ? Math.max(0, Math.round((new Date(TODAY).getTime() - new Date(res.checkIn).getTime()) / 86400000))
                       : 0;
@@ -327,7 +324,6 @@ export default function ReservationPage() {
 
                     return (
                       <div key={room.id} className={`room-cell ${room.status}`} onClick={() => openRoomDetail(room.id)}>
-                        {/* Top row: Room number + status dot */}
                         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                           <div>
                             <span className="room-number-giant">{room.id}</span>
@@ -338,7 +334,6 @@ export default function ReservationPage() {
                           </div>
                         </div>
 
-                        {/* Middle: contextual info */}
                         <div style={{ padding:'10px 0', flex:1, display:'flex', flexDirection:'column', gap:4 }}>
                           {room.status === 'occupied' && res ? (
                             <>
@@ -383,7 +378,6 @@ export default function ReservationPage() {
                           )}
                         </div>
 
-                        {/* Bottom: price */}
                         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                           <span style={{ fontSize:11, color:'var(--text-muted)' }}>
                             {fmtShort(rt.basePrice)}/đêm
@@ -402,7 +396,6 @@ export default function ReservationPage() {
         </div>
       )}
 
-      {/* ── LIST TAB ── */}
       {activeTab === 'list' && (
         <div>
           <div className="filter-bar">
@@ -463,6 +456,8 @@ export default function ReservationPage() {
                     </tr>
                   ) : filteredReservations.map(r => {
                     const nights = calcNights(r.checkIn, r.checkOut);
+                    const daysLeft = Math.max(0, calcNights(TODAY, r.checkOut));
+                    const svcTotal = services.filter(s => s.bookingId === r.id).reduce((sum, s) => sum + s.price * s.qty, 0);
                     return (
                       <tr key={r.id}>
                         <td>
@@ -507,8 +502,9 @@ export default function ReservationPage() {
                         <td>
                           <span className={`badge ${statusBadgeClass(r.status)}`}>{statusLabel[r.status]}</span>
                         </td>
-                        <td style={{ textAlign:'right', fontWeight:800, color:'var(--accent-1)', fontVariantNumeric:'tabular-nums' }}>
-                          {fmtShort(r.total)}
+                        <td style={{ textAlign:'right' }}>
+                          <div style={{ fontWeight:800, color:'var(--accent-1)', fontVariantNumeric:'tabular-nums' }}>{fmtShort(r.total + svcTotal)}</div>
+                          {svcTotal > 0 && <div style={{ fontSize:10, color:'var(--color-info)' }}>Dịch vụ: +{fmtShort(svcTotal)}</div>}
                         </td>
                         <td>
                           <div style={{ display:'flex', gap:4 }}>

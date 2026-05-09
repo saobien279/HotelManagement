@@ -21,7 +21,7 @@ const serviceTypes = [
 
 export default function POSPage() {
   const [activeTab, setActiveTab] = useState<'services'|'inventory'>('services');
-  const { services, reservations, addService, billService, adjustInventory, inventory } = useHotel();
+  const { services, reservations, addService, adjustInventory, inventory } = useHotel();
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
 
@@ -147,14 +147,7 @@ export default function POSPage() {
                       <td style={{fontWeight:700,color:'#A5B4FC'}}>{fmtShort(s.price*s.qty)}</td>
                       <td style={{color:'var(--text-muted)'}}>{s.date}</td>
                       <td>{s.status==='billed'?<span className="badge badge-confirmed">Đã tính</span>:<span className="badge badge-pending">Chờ tính</span>}</td>
-                      <td>{s.status==='pending'&&<button className="btn btn-primary btn-sm" onClick={async ()=>{
-                        try {
-                          await billService(s.id);
-                          toast('Đã tính vào hóa đơn!','success');
-                        } catch (e: any) {
-                          toast(e.message, 'error');
-                        }
-                      }}>Tính tiền</button>}</td>
+                      <td>{/* Chờ thanh toán tại Tiền sảnh khi Check-out */}</td>
                     </tr>
                   ))}
                 </tbody>

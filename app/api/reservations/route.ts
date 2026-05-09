@@ -35,11 +35,16 @@ export async function POST(req: Request) {
   const reservation: Reservation = { id: newId.reservation(), ...body };
   db.reservations.unshift(reservation);
 
-  // Auto-occupy room if checked-in (Walk-in)
-  if (reservation.status === 'checkedin' && reservation.roomId) {
+  // Auto-update room status based on reservation type
+  if (reservation.roomId) {
     const rIdx = db.rooms.findIndex(rm => rm.id === reservation.roomId);
     if (rIdx !== -1) {
-      db.rooms[rIdx].status = 'occupied';
+      if (reservation.status === 'checkedin') {
+        db.rooms[rIdx].status = 'occupied';
+        db.rooms[rIdx].guest  = reservation.guestName;
+      } else if (['confirmed', 'deposit', 'pending', 'new'].includes(reservation.status)) {
+        db.rooms[rIdx].status = 'reserved';
+      }
     }
   }
 

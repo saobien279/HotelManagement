@@ -1,9 +1,7 @@
 'use client';
 
 import { useHotel } from '@/context/HotelContext';
-import { useModal } from '@/components/ui/UIProvider';
-import { useToast } from '@/components/ui/UIProvider';
-import { revenueMonthly, revenueBySource } from '@/context/HotelContext';
+import { revenueMonthly, revenueBySource } from '@/lib/data';
 import { fmtShort, logColor, TODAY } from '@/lib/utils';
 import {
   Building, CheckCircle2, LogIn, LogOut, Wallet,
@@ -16,6 +14,7 @@ import Link from 'next/link';
 export default function DashboardPage() {
   const { getStats, reservations, activityLog } = useHotel();
   const stats = getStats();
+  if (!stats) return null;
 
   const todayCheckins  = reservations.filter(r => r.checkIn  === TODAY && r.status !== 'cancelled').length;
   const todayCheckouts = reservations.filter(r => r.checkOut === TODAY && r.status !== 'cancelled').length;
@@ -140,7 +139,7 @@ export default function DashboardPage() {
                   <strong>{item.count}/{item.total}</strong>
                 </div>
                 <div className="progress-bar">
-                  <div className={`progress-fill ${item.cls}`} style={{ width:`${Math.round(item.count/item.total*100)}%` }} />
+                  <div className={`progress-fill ${item.cls}`} style={{ width: `${Math.round(item.count/item.total*100)}%` }} />
                 </div>
               </div>
             ))}
@@ -165,7 +164,7 @@ export default function DashboardPage() {
                   <span>{fmtShort(s.amount)} <strong style={{ color:'var(--text-primary)' }}>({s.percent}%)</strong></span>
                 </div>
                 <div className="progress-bar">
-                  <div className="progress-fill" style={{ width:`${s.percent}%` }} />
+                  <div className="progress-fill" style={{ width: `${s.percent}%` }} />
                 </div>
               </div>
             ))}
@@ -211,3 +210,4 @@ export default function DashboardPage() {
     </>
   );
 }
+

@@ -110,8 +110,8 @@ export function HotelProvider({ children }: { children: ReactNode }) {
 
   const updateReservationStatus = useCallback(async (id: string, status: ReservationStatus, extra?: any) => {
     await api(`/api/reservations/${id}`, { method: 'PATCH', body: JSON.stringify({ status, ...extra }) });
-    await Promise.all([fetchReservations(), fetchRooms(), fetchStats()]);
-  }, [fetchReservations, fetchRooms, fetchStats]);
+    await Promise.all([fetchReservations(), fetchRooms(), fetchServices(), fetchStats()]);
+  }, [fetchReservations, fetchRooms, fetchServices, fetchStats]);
 
   const addService = useCallback(async (data: Omit<Service, 'id'>) => {
     await api('/api/services', { method: 'POST', body: JSON.stringify(data) });

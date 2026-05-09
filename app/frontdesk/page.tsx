@@ -487,7 +487,17 @@ export default function FrontDeskPage() {
                         <div style={{ fontSize:11, color:'var(--text-muted)' }}>{fmtDate(r.checkOut)}</div>
                       </td>
                       <td>{r.adults + r.children} người</td>
-                      <td style={{ textAlign:'right', fontWeight:700, color:'var(--accent-1)', fontVariantNumeric:'tabular-nums' }}>{fmtShort(r.total)}</td>
+                      <td style={{ textAlign:'right' }}>
+                        {(() => {
+                          const svcTotal = services.filter(s => s.bookingId === r.id).reduce((sum, s) => sum + s.price * s.qty, 0);
+                          return (
+                            <>
+                              <div style={{ fontWeight:700, color:'var(--accent-1)', fontVariantNumeric:'tabular-nums' }}>{fmtShort(r.total + svcTotal)}</div>
+                              {svcTotal > 0 && <div style={{ fontSize:10, color:'var(--color-info)' }}>Dịch vụ: +{fmtShort(svcTotal)}</div>}
+                            </>
+                          );
+                        })()}
+                      </td>
                       <td style={{ fontSize:12, color:'var(--text-muted)', maxWidth:140 }}>{r.note || '—'}</td>
                       <td>
                         <div style={{ display:'flex', gap:4 }}>
