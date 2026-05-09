@@ -129,6 +129,21 @@
   ],
   "reservations": [
     {
+      "id": "BK054059",
+      "guestName": "Nguyễn Cecil",
+      "phone": "098712367312",
+      "roomId": "101",
+      "roomType": "SGL",
+      "checkIn": "2026-05-09",
+      "checkOut": "2026-05-10",
+      "adults": 1,
+      "children": 0,
+      "status": "checkedout",
+      "source": "direct",
+      "note": "",
+      "total": 350000
+    },
+    {
       "id": "BK099404",
       "guestName": "Nguyễn Cecil",
       "phone": "098712367312",
@@ -799,6 +814,16 @@
       "price": 600000,
       "date": "2026-05-09",
       "status": "billed"
+    },
+    {
+      "id": "SV065734",
+      "bookingId": "BK054059",
+      "name": "Thuê xe",
+      "qty": 1,
+      "unit": "lần",
+      "price": 600000,
+      "date": "2026-05-09",
+      "status": "billed"
     }
   ],
   "inventory": [
@@ -934,6 +959,46 @@
     }
   ],
   "activityLog": [
+    {
+      "id": "L076508",
+      "time": "14:34",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Phòng 101: → vacant",
+      "type": "housekeeping"
+    },
+    {
+      "id": "L072149",
+      "time": "14:34",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Check-out Nguyễn Cecil – Phòng 101",
+      "type": "invoice"
+    },
+    {
+      "id": "L065734",
+      "time": "14:34",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Thuê xe vào BK054059",
+      "type": "invoice"
+    },
+    {
+      "id": "L059419",
+      "time": "14:34",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Check-in Nguyễn Cecil – Phòng 101",
+      "type": "checkin"
+    },
+    {
+      "id": "L054059",
+      "time": "14:34",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Tạo đặt phòng mới BK054059 – Nguyễn Cecil",
+      "type": "booking"
+    },
     {
       "id": "L117858",
       "time": "14:18",
