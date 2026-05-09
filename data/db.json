@@ -129,6 +129,21 @@
   ],
   "reservations": [
     {
+      "id": "BK099404",
+      "guestName": "Nguyễn Cecil",
+      "phone": "098712367312",
+      "roomId": "101",
+      "roomType": "SGL",
+      "checkIn": "2026-05-09",
+      "checkOut": "2026-05-10",
+      "adults": 1,
+      "children": 0,
+      "status": "checkedout",
+      "source": "direct",
+      "note": "",
+      "total": 350000
+    },
+    {
       "id": "BK893904",
       "guestName": "Nguyễn Minh B",
       "phone": "0987712362",
@@ -919,6 +934,38 @@
     }
   ],
   "activityLog": [
+    {
+      "id": "L117858",
+      "time": "14:18",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Phòng 101: → vacant",
+      "type": "housekeeping"
+    },
+    {
+      "id": "L113740",
+      "time": "14:18",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Check-out Nguyễn Cecil – Phòng 101",
+      "type": "invoice"
+    },
+    {
+      "id": "L108552",
+      "time": "14:18",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Check-in Nguyễn Cecil – Phòng 101",
+      "type": "checkin"
+    },
+    {
+      "id": "L099405",
+      "time": "14:18",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Tạo đặt phòng mới BK099404 – Nguyễn Cecil",
+      "type": "booking"
+    },
     {
       "id": "L959091",
       "time": "09:32",
