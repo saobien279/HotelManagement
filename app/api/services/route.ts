@@ -5,7 +5,7 @@ import type { Service } from '@/lib/types';
 // ── GET /api/services ────────────────────────
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const db = readDB();
+  const db = await readDB();
 
   let data = db.services;
   const bookingId = searchParams.get('bookingId');
@@ -20,13 +20,13 @@ export async function GET(req: Request) {
 // ── POST /api/services ───────────────────────
 export async function POST(req: Request) {
   const body = await req.json() as Omit<Service, 'id'>;
-  const db = readDB();
+  const db = await readDB();
 
   const service: Service = { id: newId.service(), ...body };
   db.services.push(service);
 
   appendLog(db, 'Lễ tân', `Thêm dịch vụ ${service.name} vào ${service.bookingId}`, 'invoice');
 
-  writeDB(db);
+  await writeDB(db);
   return NextResponse.json({ data: service }, { status: 201 });
 }

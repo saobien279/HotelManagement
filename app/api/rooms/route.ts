@@ -4,7 +4,7 @@ import { readDB, writeDB, appendLog } from '@/lib/db';
 // ── GET /api/rooms ───────────────────────────
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const db = readDB();
+  const db = await readDB();
 
   let data = db.rooms;
   const floor  = searchParams.get('floor');

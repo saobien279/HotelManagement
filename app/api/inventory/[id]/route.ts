@@ -8,7 +8,7 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(req: Request, { params }: Params) {
   const { id } = await params;
   const body: { stock?: number; adjustment?: number; minStock?: number } = await req.json();
-  const db = readDB();
+  const db = await readDB();
 
   const idx = db.inventory.findIndex(i => i.id === id);
   if (idx === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -24,7 +24,7 @@ export async function PATCH(req: Request, { params }: Params) {
   if (typeof body.minStock === 'number') item.minStock = body.minStock;
 
   db.inventory[idx] = item;
-  writeDB(db);
+  await writeDB(db);
 
   return NextResponse.json({ data: item });
 }

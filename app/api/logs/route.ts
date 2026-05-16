@@ -4,6 +4,6 @@ import { readDB } from '@/lib/db';
 // ── GET /api/logs ───────────────────────────
 // Returns the activity log from the DB
 export async function GET() {
-  const db = readDB();
+  const db = await readDB();
   return NextResponse.json({ data: db.activityLog });
 }

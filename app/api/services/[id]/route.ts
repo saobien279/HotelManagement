@@ -7,7 +7,7 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(req: Request, { params }: Params) {
   const { id } = await params;
   const body = await req.json();
-  const db = readDB();
+  const db = await readDB();
 
   const idx = db.services.findIndex(s => s.id === id);
   if (idx === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -18,20 +18,20 @@ export async function PATCH(req: Request, { params }: Params) {
     appendLog(db, 'Lễ tân', `Tính tiền dịch vụ ${db.services[idx].name} – ${id}`, 'invoice');
   }
 
-  writeDB(db);
+  await writeDB(db);
   return NextResponse.json({ data: db.services[idx] });
 }
 
 // ── DELETE /api/services/:id ─────────────────
 export async function DELETE(_req: Request, { params }: Params) {
   const { id } = await params;
-  const db = readDB();
+  const db = await readDB();
 
   const idx = db.services.findIndex(s => s.id === id);
   if (idx === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const [removed] = db.services.splice(idx, 1);
-  writeDB(db);
+  await writeDB(db);
 
   return NextResponse.json({ data: removed });
 }

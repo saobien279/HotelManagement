@@ -129,6 +129,21 @@
   ],
   "reservations": [
     {
+      "id": "BK038471",
+      "guestName": "Nguyễn Cecil",
+      "phone": "098712367312",
+      "roomId": "203",
+      "roomType": "TWN",
+      "checkIn": "2026-05-09",
+      "checkOut": "2026-05-10",
+      "adults": 2,
+      "children": 0,
+      "status": "checkedout",
+      "source": "agoda",
+      "note": "",
+      "total": 600000
+    },
+    {
       "id": "BK054059",
       "guestName": "Nguyễn Cecil",
       "phone": "098712367312",
@@ -824,6 +839,26 @@
       "price": 600000,
       "date": "2026-05-09",
       "status": "billed"
+    },
+    {
+      "id": "SV096325",
+      "bookingId": "BK038471",
+      "name": "Spa",
+      "qty": 1,
+      "unit": "lần",
+      "price": 500000,
+      "date": "2026-05-09",
+      "status": "billed"
+    },
+    {
+      "id": "SV100307",
+      "bookingId": "BK038471",
+      "name": "Minibar",
+      "qty": 1,
+      "unit": "lần",
+      "price": 150000,
+      "date": "2026-05-09",
+      "status": "billed"
     }
   ],
   "inventory": [
@@ -959,6 +994,54 @@
     }
   ],
   "activityLog": [
+    {
+      "id": "L168313",
+      "time": "15:09",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Phòng 203: → vacant",
+      "type": "housekeeping"
+    },
+    {
+      "id": "L156436",
+      "time": "15:09",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Check-out Nguyễn Cecil – Phòng 203",
+      "type": "invoice"
+    },
+    {
+      "id": "L100307",
+      "time": "15:08",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Minibar vào BK038471",
+      "type": "invoice"
+    },
+    {
+      "id": "L096325",
+      "time": "15:08",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Thêm dịch vụ Spa vào BK038471",
+      "type": "invoice"
+    },
+    {
+      "id": "L068760",
+      "time": "15:07",
+      "date": "2026-05-09",
+      "user": "Lễ tân",
+      "action": "Check-in Nguyễn Cecil – Phòng 203",
+      "type": "checkin"
+    },
+    {
+      "id": "L038471",
+      "time": "15:07",
+      "date": "2026-05-09",
+      "user": "Hệ thống",
+      "action": "Tạo đặt phòng mới BK038471 – Nguyễn Cecil",
+      "type": "booking"
+    },
     {
       "id": "L076508",
       "time": "14:34",

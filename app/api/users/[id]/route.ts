@@ -7,7 +7,7 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(req: Request, { params }: Params) {
   const { id } = await params;
   const body = await req.json();
-  const db = readDB();
+  const db = await readDB();
 
   const idx = db.users.findIndex(u => u.id === id);
   if (idx === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -15,14 +15,14 @@ export async function PATCH(req: Request, { params }: Params) {
   db.users[idx] = { ...db.users[idx], ...body };
   appendLog(db, 'Admin', `Cập nhật tài khoản ${db.users[idx].name}`, 'config');
 
-  writeDB(db);
+  await writeDB(db);
   return NextResponse.json({ data: db.users[idx] });
 }
 
 // ── DELETE /api/users/:id ────────────────────
 export async function DELETE(_req: Request, { params }: Params) {
   const { id } = await params;
-  const db = readDB();
+  const db = await readDB();
 
   const idx = db.users.findIndex(u => u.id === id);
   if (idx === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -35,7 +35,7 @@ export async function DELETE(_req: Request, { params }: Params) {
 
   db.users.splice(idx, 1);
   appendLog(db, 'Admin', `Xóa tài khoản ${user.name}`, 'config');
-  writeDB(db);
+  await writeDB(db);
 
   return NextResponse.json({ data: user });
 }

@@ -5,7 +5,7 @@ import type { Reservation } from '@/lib/types';
 // ── GET /api/reservations ────────────────────
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const db = readDB();
+  const db = await readDB();
 
   let data = db.reservations;
 
@@ -30,7 +30,7 @@ export async function GET(req: Request) {
 // ── POST /api/reservations ───────────────────
 export async function POST(req: Request) {
   const body = await req.json() as Omit<Reservation, 'id'>;
-  const db = readDB();
+  const db = await readDB();
 
   const reservation: Reservation = { id: newId.reservation(), ...body };
   db.reservations.unshift(reservation);
@@ -50,6 +50,6 @@ export async function POST(req: Request) {
 
   appendLog(db, 'Hệ thống', `Tạo đặt phòng mới ${reservation.id} – ${reservation.guestName}`, 'booking');
 
-  writeDB(db);
+  await writeDB(db);
   return NextResponse.json({ data: reservation }, { status: 201 });
 }

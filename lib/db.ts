@@ -1,25 +1,22 @@
 // ============================================================
-//  HotelOS – JSON File Persistence Layer  (Server-side only)
-//  Thay thế dễ dàng bằng PostgreSQL/MySQL sau này
+//  HotelOS – Vercel KV Persistence Layer  (Cloud-ready)
+//  Replaces the old fs-based db.json approach
 // ============================================================
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import path from 'path';
+import { kv } from '@vercel/kv';
 import {
   initialRooms, initialReservations, initialServices,
   initialInventory, initialUsers, activityLog,
-  roomTypes, guests, revenueMonthly, revenueBySource,
 } from '@/lib/data';
 import type {
   Room, Reservation, Service, InventoryItem, User, ActivityLog,
 } from '@/lib/types';
 
-/* ─── DB file path ─────────────────────────── */
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DB_PATH  = path.join(DATA_DIR, 'db.json');
+/* ─── DB Key in KV ──────────────────────────── */
+const DB_KEY = 'hotelOS:db';
 
 /* ─── DB Schema ────────────────────────────── */
-interface DB {
+export interface DB {
   rooms:        Room[];
   reservations: Reservation[];
   services:     Service[];
@@ -31,29 +28,23 @@ interface DB {
 }
 
 /* ─── Read DB ───────────────────────────────── */
-export function readDB(): DB {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-
-  if (!existsSync(DB_PATH)) {
-    return seedDB();
-  }
-
+export async function readDB(): Promise<DB> {
   try {
-    const raw = readFileSync(DB_PATH, 'utf-8');
-    return JSON.parse(raw) as DB;
+    const data = await kv.get<DB>(DB_KEY);
+    if (data) return data;
+    return await seedDB();
   } catch {
-    return seedDB();
+    return await seedDB();
   }
 }
 
 /* ─── Write DB ──────────────────────────────── */
-export function writeDB(db: DB): void {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
+export async function writeDB(db: DB): Promise<void> {
+  await kv.set(DB_KEY, db);
 }
 
 /* ─── Seed with initial data ────────────────── */
-function seedDB(): DB {
+async function seedDB(): Promise<DB> {
   const db: DB = {
     rooms:        initialRooms,
     reservations: initialReservations,
@@ -64,7 +55,7 @@ function seedDB(): DB {
     _version:     1,
     _seeded:      true,
   };
-  writeDB(db);
+  await writeDB(db);
   return db;
 }
 

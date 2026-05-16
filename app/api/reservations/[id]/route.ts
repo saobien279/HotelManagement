@@ -6,7 +6,7 @@ type Params = { params: Promise<{ id: string }> };
 // ── GET /api/reservations/:id ────────────────
 export async function GET(_req: Request, { params }: Params) {
   const { id } = await params;
-  const db = readDB();
+  const db = await readDB();
   const item = db.reservations.find(r => r.id === id);
   if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json({ data: item });
@@ -16,7 +16,7 @@ export async function GET(_req: Request, { params }: Params) {
 export async function PATCH(req: Request, { params }: Params) {
   const { id } = await params;
   const body = await req.json();
-  const db = readDB();
+  const db = await readDB();
 
   const idx = db.reservations.findIndex(r => r.id === id);
   if (idx === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -54,21 +54,21 @@ export async function PATCH(req: Request, { params }: Params) {
     }
   }
 
-  writeDB(db);
+  await writeDB(db);
   return NextResponse.json({ data: updated });
 }
 
 // ── DELETE /api/reservations/:id ─────────────
 export async function DELETE(_req: Request, { params }: Params) {
   const { id } = await params;
-  const db = readDB();
+  const db = await readDB();
 
   const idx = db.reservations.findIndex(r => r.id === id);
   if (idx === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const [removed] = db.reservations.splice(idx, 1);
   appendLog(db, 'Admin', `Xóa đặt phòng ${id}`, 'cancel');
-  writeDB(db);
+  await writeDB(db);
 
   return NextResponse.json({ data: removed });
 }

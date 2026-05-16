@@ -5,7 +5,7 @@ import { TODAY } from '@/lib/utils';
 // ── GET /api/stats ───────────────────────────
 // Returns real-time dashboard KPIs computed from DB
 export async function GET() {
-  const db = readDB();
+  const db = await readDB();
 
   const rooms        = db.rooms;
   const reservations = db.reservations;
