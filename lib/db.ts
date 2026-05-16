@@ -1,9 +1,9 @@
 // ============================================================
-//  HotelOS – Upstash Redis Persistence Layer  (Cloud-ready)
-//  Replaces the old fs-based db.json approach
+//  HotelOS – Redis Persistence Layer  (Cloud-ready)
+//  Uses node-redis with REDIS_URL from Vercel Redis
 // ============================================================
 
-import { Redis } from '@upstash/redis';
+import { createClient } from 'redis';
 import {
   initialRooms, initialReservations, initialServices,
   initialInventory, initialUsers, activityLog,
@@ -12,8 +12,25 @@ import type {
   Room, Reservation, Service, InventoryItem, User, ActivityLog,
 } from '@/lib/types';
 
-/* ─── Redis client (auto-reads UPSTASH_REDIS_REST_URL & UPSTASH_REDIS_REST_TOKEN) */
-const redis = Redis.fromEnv();
+/* ─── Redis client singleton ─────────────────── */
+let client: ReturnType<typeof createClient> | null = null;
+
+async function getRedis() {
+  if (client && client.isOpen) return client;
+
+  const url = process.env.REDIS_URL;
+  if (!url) throw new Error('Missing REDIS_URL environment variable');
+
+  // Vercel Redis uses rediss:// (TLS) – auto-detect
+  const useTls = url.startsWith('rediss://');
+  client = createClient({
+    url,
+    socket: useTls ? { tls: true } : undefined,
+  });
+  client.on('error', (err) => console.error('[Redis]', err));
+  await client.connect();
+  return client;
+}
 
 /* ─── DB Key in Redis ───────────────────────── */
 const DB_KEY = 'hotelOS:db';
@@ -33,17 +50,20 @@ export interface DB {
 /* ─── Read DB ───────────────────────────────── */
 export async function readDB(): Promise<DB> {
   try {
-    const data = await redis.get<DB>(DB_KEY);
-    if (data) return data;
+    const redis = await getRedis();
+    const raw = await redis.get(DB_KEY);
+    if (raw) return JSON.parse(raw) as DB;
     return await seedDB();
-  } catch {
+  } catch (err) {
+    console.error('[readDB] Error:', err);
     return await seedDB();
   }
 }
 
 /* ─── Write DB ──────────────────────────────── */
 export async function writeDB(db: DB): Promise<void> {
-  await redis.set(DB_KEY, db);
+  const redis = await getRedis();
+  await redis.set(DB_KEY, JSON.stringify(db));
 }
 
 /* ─── Seed with initial data ────────────────── */
@@ -58,7 +78,11 @@ async function seedDB(): Promise<DB> {
     _version:     1,
     _seeded:      true,
   };
-  await writeDB(db);
+  try {
+    await writeDB(db);
+  } catch (err) {
+    console.error('[seedDB] Failed to write seed data:', err);
+  }
   return db;
 }
 
