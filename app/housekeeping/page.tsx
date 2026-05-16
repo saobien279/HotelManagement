@@ -2,26 +2,26 @@
 
 import { useState } from 'react';
 import { useHotel } from '@/context/HotelContext';
-import { initialInventory } from '@/lib/data';
 import { useModal } from '@/components/ui/UIProvider';
 import { useToast } from '@/components/ui/UIProvider';
 import { roomTypeLabel, statusBadgeClass, statusLabel } from '@/lib/utils';
 import { Sparkles, Wrench, CheckCircle, LayoutGrid, BedDouble, Package, ClipboardList } from 'lucide-react';
 import type { RoomStatus } from '@/lib/types';
 
-const tasks = [
-  { room: '103', type: 'Vệ sinh toàn phần', assignee: 'Buồng phòng 1', priority: 'high' as const, time: '08:00', done: true },
-  { room: '204', type: 'Thay ga, khăn',     assignee: 'Buồng phòng 1', priority: 'high' as const, time: '09:00', done: true },
-  { room: '304', type: 'Vệ sinh toàn phần', assignee: 'Buồng phòng 2', priority: 'high' as const, time: '10:00', done: false },
-  { room: '106', type: 'Sửa điều hòa',      assignee: 'Kỹ thuật',       priority: 'medium' as const, time: '11:00', done: false },
-  { room: '301', type: 'Bổ sung minibar',   assignee: 'Buồng phòng 1', priority: 'low' as const,    time: '14:00', done: false },
+const initialTasks = [
+  { id: 1, room: '103', type: 'Vệ sinh toàn phần', assignee: 'Buồng phòng 1', priority: 'high' as const, time: '08:00', done: true },
+  { id: 2, room: '204', type: 'Thay ga, khăn',     assignee: 'Buồng phòng 1', priority: 'high' as const, time: '09:00', done: true },
+  { id: 3, room: '304', type: 'Vệ sinh toàn phần', assignee: 'Buồng phòng 2', priority: 'high' as const, time: '10:00', done: false },
+  { id: 4, room: '106', type: 'Sửa điều hòa',      assignee: 'Kỹ thuật',       priority: 'medium' as const, time: '11:00', done: false },
+  { id: 5, room: '301', type: 'Bổ sung minibar',   assignee: 'Buồng phòng 1', priority: 'low' as const,    time: '14:00', done: false },
 ];
 const priorityColor = { high:'var(--color-danger)', medium:'var(--color-warning)', low:'var(--color-info)' };
 const priorityLabel = { high:'Cao', medium:'Trung bình', low:'Thấp' };
 
 export default function HousekeepingPage() {
   const [activeTab, setActiveTab] = useState<'rooms'|'supplies'|'tasks'>('rooms');
-  const { rooms, updateRoomStatus } = useHotel();
+  const [tasks, setTasks] = useState(initialTasks);
+  const { rooms, updateRoomStatus, inventory, adjustInventory } = useHotel();
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
 
@@ -29,20 +29,35 @@ export default function HousekeepingPage() {
   const maintenance = rooms.filter(r=>r.status==='maintenance').length;
   const vacant      = rooms.filter(r=>r.status==='vacant').length;
 
+  const toggleTask = (id: number) => {
+    setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
+    toast('Đã cập nhật trạng thái công việc!', 'success');
+  };
+
   const openAddSupply = () => {
     openModal('Nhập vật tư kho', (
       <div>
-        <div className="form-row">
-          <div className="form-group"><label className="form-label">Tên vật tư</label><input type="text" className="form-input" placeholder="Khăn tắm..."/></div>
-          <div className="form-group"><label className="form-label">Số lượng nhập</label><input type="number" className="form-input" defaultValue={50} min={1}/></div>
+        <div className="form-group">
+          <label className="form-label">Chọn vật tư</label>
+          <select id="hk_inv_item" className="form-select">
+            {inventory.map(i => <option key={i.id} value={i.id}>{i.name} ({i.stock} {i.unit})</option>)}
+          </select>
         </div>
-        <div className="form-row">
-          <div className="form-group"><label className="form-label">Danh mục</label><select className="form-select"><option value="linens">Ga/Chăn/Khăn</option><option value="amenity">Vật dụng phòng</option><option value="beverage">Đồ uống</option><option value="supplies">Vật tư khác</option></select></div>
-          <div className="form-group"><label className="form-label">Đơn giá (VND)</label><input type="number" className="form-input" placeholder="35000"/></div>
-        </div>
+        <div className="form-group"><label className="form-label">Số lượng nhập</label><input id="hk_inv_qty" type="number" className="form-input" defaultValue={50} min={1}/></div>
       </div>
     ), [
-      { label: 'Lưu', cls: 'btn-primary', onClick: () => { closeModal(); toast('Đã cập nhật vật tư kho!','success'); } },
+      { label: 'Lưu', cls: 'btn-primary', onClick: async () => {
+        const itemId = (document.getElementById('hk_inv_item') as HTMLSelectElement)?.value;
+        const qty = +(document.getElementById('hk_inv_qty') as HTMLInputElement)?.value;
+        if (!itemId || !qty) return;
+        try {
+          await adjustInventory(itemId, qty);
+          closeModal();
+          toast('Đã cập nhật vật tư kho!', 'success');
+        } catch (e: any) {
+          toast(e.message, 'error');
+        }
+      }},
       { label: 'Hủy', cls: 'btn-ghost', onClick: closeModal },
     ]);
   };
@@ -121,7 +136,7 @@ export default function HousekeepingPage() {
               <table className="table">
                 <thead><tr><th>Tên vật tư</th><th>Danh mục</th><th>Đơn vị</th><th style={{textAlign:'right'}}>Tồn kho</th><th style={{textAlign:'right'}}>Tối thiểu</th><th>Trạng thái</th></tr></thead>
                 <tbody>
-                  {initialInventory.map(i=>(
+                  {inventory.map(i=>(
                     <tr key={i.id}>
                       <td style={{fontWeight:600}}>{i.name}</td>
                       <td style={{color:'var(--text-muted)'}}>{catLabels[i.category]??i.category}</td>
@@ -144,15 +159,15 @@ export default function HousekeepingPage() {
             <table className="table">
               <thead><tr><th>Phòng</th><th>Công việc</th><th>Nhân viên</th><th>Giờ</th><th>Mức độ</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
               <tbody>
-                {tasks.map((t,i)=>(
-                  <tr key={i} style={{opacity:t.done?0.5:1}}>
+                {tasks.map(t=>(
+                  <tr key={t.id} style={{opacity:t.done?0.5:1}}>
                     <td><strong>P.{t.room}</strong></td>
                     <td>{t.type}</td>
                     <td style={{color:'var(--text-secondary)'}}>{t.assignee}</td>
                     <td>{t.time}</td>
                     <td><span style={{color:priorityColor[t.priority],fontWeight:700,fontSize:12}}>{priorityLabel[t.priority]}</span></td>
                     <td>{t.done?<span className="badge badge-confirmed">Hoàn thành</span>:<span className="badge badge-pending">Chưa xong</span>}</td>
-                    <td>{!t.done&&<button className="btn btn-primary btn-sm" onClick={()=>toast('Công việc hoàn thành!','success')}>Xong</button>}</td>
+                    <td>{!t.done&&<button className="btn btn-primary btn-sm" onClick={()=>toggleTask(t.id)}>Xong</button>}</td>
                   </tr>
                 ))}
               </tbody>

@@ -83,6 +83,39 @@ export default function POSPage() {
     ]);
   };
 
+  const openGeneralImport = () => {
+    openModal(`Nhập kho`, (
+      <div>
+        <div className="form-group">
+          <label className="form-label">Chọn vật tư</label>
+          <select id="gen_inv_item" className="form-select">
+            {inventory.map(i => <option key={i.id} value={i.id}>{i.name} ({i.stock} {i.unit})</option>)}
+          </select>
+        </div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Số lượng nhập</label><input id="inv_qty" type="number" className="form-input" defaultValue={50} min={1}/></div>
+          <div className="form-group"><label className="form-label">Nhà cung cấp</label><input id="inv_vendor" type="text" className="form-input" placeholder="Công ty ABC"/></div>
+        </div>
+        <div className="form-group"><label className="form-label">Ghi chú</label><input id="inv_note" type="text" className="form-input" placeholder="Lô hàng tháng 3..."/></div>
+      </div>
+    ), [
+      { label: 'Lưu nhập kho', cls: 'btn-primary', onClick: async () => { 
+        const itemId = (document.getElementById('gen_inv_item') as HTMLSelectElement)?.value;
+        const qty = +(document.getElementById('inv_qty') as HTMLInputElement)?.value || 0;
+        if (!itemId || !qty) return;
+        try {
+          await adjustInventory(itemId, qty);
+          closeModal(); 
+          const item = inventory.find(i => i.id === itemId);
+          toast(`Đã nhập kho ${qty} ${item?.unit} cho ${item?.name}!`,'success'); 
+        } catch (e: any) {
+          toast(e.message, 'error');
+        }
+      }},
+      { label: 'Hủy', cls: 'btn-ghost', onClick: closeModal },
+    ]);
+  };
+
   const lowStock = inventory.filter(i=>i.stock<=i.minStock);
 
   return (
@@ -166,7 +199,7 @@ export default function POSPage() {
               </div>
             )}
             <div style={{display:'flex',gap:8}}>
-              <button className="btn btn-ghost btn-sm">Nhập kho</button>
+              <button className="btn btn-ghost btn-sm" onClick={openGeneralImport}>Nhập kho</button>
               <button className="btn btn-primary btn-sm" onClick={()=>toast('Đang mở form xuất kho...','info')}>Xuất kho</button>
             </div>
           </div>

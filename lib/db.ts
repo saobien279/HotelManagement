@@ -12,6 +12,9 @@ import type {
   Room, Reservation, Service, InventoryItem, User, ActivityLog,
 } from '@/lib/types';
 
+/* ─── In-memory fallback (for local dev without Redis) ── */
+let memoryDB: DB | null = null;
+
 /* ─── Redis client singleton ─────────────────── */
 let client: ReturnType<typeof createClient> | null = null;
 
@@ -19,7 +22,10 @@ async function getRedis() {
   if (client && client.isOpen) return client;
 
   const url = process.env.REDIS_URL;
-  if (!url) throw new Error('Missing REDIS_URL environment variable');
+  if (!url) {
+    console.warn('[Redis] Missing REDIS_URL. Using in-memory fallback.');
+    return null; // Signals memory fallback
+  }
 
   // Vercel Redis uses rediss:// (TLS) – auto-detect
   const useTls = url.startsWith('rediss://');
@@ -51,24 +57,37 @@ export interface DB {
 export async function readDB(): Promise<DB> {
   try {
     const redis = await getRedis();
+    if (!redis) {
+      if (!memoryDB) memoryDB = await getSeedData();
+      return memoryDB;
+    }
     const raw = await redis.get(DB_KEY);
     if (raw) return JSON.parse(raw) as DB;
     return await seedDB();
   } catch (err) {
     console.error('[readDB] Error:', err);
-    return await seedDB();
+    if (!memoryDB) memoryDB = await getSeedData();
+    return memoryDB;
   }
 }
 
 /* ─── Write DB ──────────────────────────────── */
 export async function writeDB(db: DB): Promise<void> {
-  const redis = await getRedis();
-  await redis.set(DB_KEY, JSON.stringify(db));
+  try {
+    const redis = await getRedis();
+    if (!redis) {
+      memoryDB = db;
+      return;
+    }
+    await redis.set(DB_KEY, JSON.stringify(db));
+  } catch (err) {
+    console.error('[writeDB] Error:', err);
+    memoryDB = db;
+  }
 }
 
-/* ─── Seed with initial data ────────────────── */
-async function seedDB(): Promise<DB> {
-  const db: DB = {
+async function getSeedData(): Promise<DB> {
+  return {
     rooms:        initialRooms,
     reservations: initialReservations,
     services:     initialServices,
@@ -78,6 +97,11 @@ async function seedDB(): Promise<DB> {
     _version:     1,
     _seeded:      true,
   };
+}
+
+/* ─── Seed with initial data ────────────────── */
+async function seedDB(): Promise<DB> {
+  const db = await getSeedData();
   try {
     await writeDB(db);
   } catch (err) {
