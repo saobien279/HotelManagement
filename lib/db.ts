@@ -1,9 +1,9 @@
 // ============================================================
-//  HotelOS – Vercel KV Persistence Layer  (Cloud-ready)
+//  HotelOS – Upstash Redis Persistence Layer  (Cloud-ready)
 //  Replaces the old fs-based db.json approach
 // ============================================================
 
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
 import {
   initialRooms, initialReservations, initialServices,
   initialInventory, initialUsers, activityLog,
@@ -12,7 +12,10 @@ import type {
   Room, Reservation, Service, InventoryItem, User, ActivityLog,
 } from '@/lib/types';
 
-/* ─── DB Key in KV ──────────────────────────── */
+/* ─── Redis client (auto-reads UPSTASH_REDIS_REST_URL & UPSTASH_REDIS_REST_TOKEN) */
+const redis = Redis.fromEnv();
+
+/* ─── DB Key in Redis ───────────────────────── */
 const DB_KEY = 'hotelOS:db';
 
 /* ─── DB Schema ────────────────────────────── */
@@ -30,7 +33,7 @@ export interface DB {
 /* ─── Read DB ───────────────────────────────── */
 export async function readDB(): Promise<DB> {
   try {
-    const data = await kv.get<DB>(DB_KEY);
+    const data = await redis.get<DB>(DB_KEY);
     if (data) return data;
     return await seedDB();
   } catch {
@@ -40,7 +43,7 @@ export async function readDB(): Promise<DB> {
 
 /* ─── Write DB ──────────────────────────────── */
 export async function writeDB(db: DB): Promise<void> {
-  await kv.set(DB_KEY, db);
+  await redis.set(DB_KEY, db);
 }
 
 /* ─── Seed with initial data ────────────────── */
