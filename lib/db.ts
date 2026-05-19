@@ -63,7 +63,11 @@ export async function readDB(): Promise<DB> {
       return memoryDB;
     }
     const raw = await redis.get(DB_KEY);
-    if (raw) return JSON.parse(raw) as DB;
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<DB>;
+      const seed = await getSeedData();
+      return { ...seed, ...parsed } as DB;
+    }
     return await seedDB();
   } catch (err) {
     console.error('[readDB] Error:', err);
