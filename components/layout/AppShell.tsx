@@ -4,11 +4,12 @@ import { useState, useCallback, ReactNode, useEffect, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useHotel } from '@/context/HotelContext';
+import { useNotification } from '@/context/NotificationContext';
 import {
   LayoutDashboard, Calendar, BellRing, Sparkles,
   ShoppingCart, TrendingUp, Settings, Building,
   ChevronLeft, ChevronRight, Bell, Search,
-  MoreHorizontal, Menu, X,
+  MoreHorizontal, Menu, X, CalendarX, AlertTriangle, CheckCircle2
 } from 'lucide-react';
 
 const pageTitles: Record<string, string> = {
@@ -26,6 +27,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const { stats, reservations, rooms } = useHotel();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, isDropdownOpen, setDropdownOpen } = useNotification();
   const [isSearchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -227,11 +229,55 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div className="topbar-right">
             <div className="topbar-date">{today}</div>
-            {/* Notif badge shows pending tasks */}
-            <button className="topbar-btn" title={`${pendingBookings} đặt phòng chờ xử lý`}>
-              <Bell size={17} />
-              {pendingBookings > 0 && <span className="notif-dot" />}
-            </button>
+            {/* Phase 4A Notification Bell */}
+            <div style={{ position: 'relative' }} id="notification-wrapper">
+              <button 
+                className="topbar-btn" 
+                title={unreadCount > 0 ? `${unreadCount} thông báo mới` : 'Thông báo'}
+                onClick={() => setDropdownOpen(!isDropdownOpen)}
+              >
+                <Bell size={17} />
+                {unreadCount > 0 && <span className="notification-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+              </button>
+
+              {isDropdownOpen && (
+                <div className="notification-dropdown">
+                  <div className="notification-header">
+                    <h3>Thông báo</h3>
+                    {unreadCount > 0 && (
+                      <button className="notification-mark-read" onClick={markAllAsRead}>
+                        Đánh dấu đã đọc tất cả
+                      </button>
+                    )}
+                  </div>
+                  <div className="notification-list">
+                    {notifications.length === 0 ? (
+                      <div style={{ padding: '30px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
+                        Không có thông báo nào.
+                      </div>
+                    ) : (
+                      notifications.map(n => (
+                        <div key={n.id} className={`notification-item ${n.read ? '' : 'unread'}`} onClick={() => markAsRead(n.id)}>
+                          <div className={`notification-icon ${n.type}`}>
+                            {n.type === 'checkout' ? <CalendarX size={15} /> :
+                             n.type === 'inventory' ? <AlertTriangle size={15} /> :
+                             n.type === 'checkin' ? <CheckCircle2 size={15} /> :
+                             <Calendar size={15} />}
+                          </div>
+                          <div className="notification-content">
+                            <div className="notification-title">
+                              {n.title}
+                              <span className="notification-time">{n.time}</span>
+                            </div>
+                            <div className="notification-message">{n.message}</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <button className="topbar-btn" title="Tìm kiếm (Ctrl+K)" onClick={() => setSearchOpen(true)}>
               <Search size={17} />
             </button>

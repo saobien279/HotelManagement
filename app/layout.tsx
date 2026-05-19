@@ -3,6 +3,7 @@ import './globals.css';
 import AppShell from '@/components/layout/AppShell';
 import { HotelProvider } from '@/context/HotelContext';
 import { UIProvider } from '@/components/ui/UIProvider';
+import { NotificationProvider } from '@/context/NotificationContext';
 
 export const metadata: Metadata = {
   title: 'HotelOS – Hệ thống Quản lý Khách sạn',
@@ -14,11 +15,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="vi" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body>
         <HotelProvider>
-          <UIProvider>
-            <AppShell>
-              {children}
-            </AppShell>
-          </UIProvider>
+          <NotificationProvider>
+            <UIProvider>
+              <AppShell>
+                {children}
+              </AppShell>
+            </UIProvider>
+          </NotificationProvider>
         </HotelProvider>
       </body>
     </html>
