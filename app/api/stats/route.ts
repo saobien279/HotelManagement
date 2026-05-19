@@ -20,19 +20,19 @@ export async function GET() {
   const occupancy   = Math.round((occupied / total) * 100);
 
   const todayRevenue = reservations
-    .filter(r => r.status === 'checkedin' || r.status === 'checkedout')
+    .filter(r => r.checkOut === TODAY && r.status === 'checkedout')
     .reduce((s, r) => s + r.total, 0);
 
   const totalServiceRevenue = services
-    .filter(s => s.status === 'billed')
+    .filter(s => s.date === TODAY && s.status === 'billed')
     .reduce((s, svc) => s + svc.price * svc.qty, 0);
 
   const checkInToday  = reservations.filter(r =>
-    (r.status === 'confirmed' || r.status === 'deposit') && r.checkIn <= TODAY
+    (r.status === 'confirmed' || r.status === 'deposit' || r.status === 'checkedin') && r.checkIn === TODAY
   ).length;
 
   const checkOutToday = reservations.filter(r =>
-    r.status === 'checkedin' && r.checkOut <= TODAY
+    (r.status === 'checkedin' || r.status === 'checkedout') && r.checkOut === TODAY
   ).length;
 
   const lowStockItems = db.inventory.filter(i => i.stock <= i.minStock).length;

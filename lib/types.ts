@@ -15,6 +15,8 @@ export interface RoomType {
   name: string;
   capacity: number;
   basePrice: number;
+  weekendPrice: number;
+  peakMultiplier: number;
 }
 
 export interface Room {

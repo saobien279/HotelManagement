@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import { useHotel } from '@/context/HotelContext';
-import { roomTypes } from '@/context/HotelContext';
 import { useModal } from '@/components/ui/UIProvider';
 import { useToast } from '@/components/ui/UIProvider';
-import { fmtShort } from '@/lib/utils';
+import { fmtShort, TODAY } from '@/lib/utils';
 import { Settings, Users, Building, List, Globe, Plus, Edit2, Lock, Unlock, Coins } from 'lucide-react';
 
 const roleColors: Record<string,{color:string;bg:string;label:string}> = {
@@ -30,9 +29,25 @@ const typeColors: Record<string,string> = {
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'users'|'rooms'|'log'|'channel'|'pricing'>('users');
-  const { users, addUser, updateUser, activityLog, loading } = useHotel();
+  const [logSearch, setLogSearch] = useState('');
+  const [logType, setLogType] = useState('all');
+  const [logPeriod, setLogPeriod] = useState('all');
+  
+  const { users, roomTypes, addUser, updateUser, updateRoomType, activityLog, loading } = useHotel();
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
+
+  const filteredLogs = activityLog.filter(l => {
+    const matchesSearch = l.action.toLowerCase().includes(logSearch.toLowerCase()) || 
+                         l.user.toLowerCase().includes(logSearch.toLowerCase());
+    const matchesType = logType === 'all' || l.type === logType;
+    
+    let matchesPeriod = true;
+    if (logPeriod === 'today') matchesPeriod = l.date === TODAY;
+    // (Simplified period logic for demo)
+
+    return matchesSearch && matchesType && matchesPeriod;
+  });
 
   const openAddUser = () => {
     openModal('Thêm người dùng mới', (
@@ -98,6 +113,8 @@ export default function AdminPage() {
     { name:'Expedia',     connected:false, rooms:0,  lastSync:'Chưa kết nối' },
     { name:'Airbnb',      connected:false, rooms:0,  lastSync:'Chưa kết nối' },
   ];
+
+  if (loading) return <div style={{ padding:40, color:'var(--text-muted)' }}>Đang tải cấu hình hệ thống...</div>;
 
   return (
     <>
@@ -218,23 +235,45 @@ export default function AdminPage() {
       {activeTab==='log' && (
         <>
           <div className="filter-bar" style={{marginBottom:16}}>
-            <div className="filter-input-wrapper"><span className="filter-icon"><Settings size={14}/></span><input type="text" className="filter-input" placeholder="Tìm kiếm thao tác..."/></div>
-            <select className="filter-select"><option>Tất cả loại</option><option>Check-in/out</option><option>Đặt phòng</option><option>Hủy</option></select>
-            <select className="filter-select"><option>Hôm nay</option><option>7 ngày qua</option><option>30 ngày qua</option></select>
+            <div className="filter-input-wrapper">
+              <span className="filter-icon"><Settings size={14}/></span>
+              <input 
+                type="text" 
+                className="filter-input" 
+                placeholder="Tìm kiếm thao tác..."
+                value={logSearch}
+                onChange={(e) => setLogSearch(e.target.value)}
+              />
+            </div>
+            <select className="filter-select" value={logType} onChange={(e) => setLogType(e.target.value)}>
+              <option value="all">Tất cả loại</option>
+              <option value="checkin">Check-in/out</option>
+              <option value="booking">Đặt phòng</option>
+              <option value="config">Cấu hình</option>
+              <option value="housekeeping">Dọn dẹp</option>
+            </select>
+            <select className="filter-select" value={logPeriod} onChange={(e) => setLogPeriod(e.target.value)}>
+              <option value="all">Mọi lúc</option>
+              <option value="today">Hôm nay</option>
+            </select>
           </div>
           <div className="card" style={{padding:0,overflow:'hidden'}}>
             <div className="table-wrapper">
               <table className="table">
                 <thead><tr><th>Thời gian</th><th>Người dùng</th><th>Loại</th><th>Nội dung thao tác</th></tr></thead>
                 <tbody>
-                  {activityLog.map(l=>(
-                    <tr key={l.id}>
-                      <td style={{whiteSpace:'nowrap',color:'var(--text-muted)',fontSize:12}}>{l.date} {l.time}</td>
-                      <td><span style={{fontWeight:600}}>{l.user}</span></td>
-                      <td><span style={{color:typeColors[l.type]??'var(--text-muted)',fontSize:12,fontWeight:600}}>{l.type}</span></td>
-                      <td style={{fontSize:13}}>{l.action}</td>
-                    </tr>
-                  ))}
+                  {filteredLogs.length > 0 ? (
+                    filteredLogs.map(l=>(
+                      <tr key={l.id}>
+                        <td style={{whiteSpace:'nowrap',color:'var(--text-muted)',fontSize:12}}>{l.date} {l.time}</td>
+                        <td><span style={{fontWeight:600}}>{l.user}</span></td>
+                        <td><span style={{color:typeColors[l.type]??'var(--text-muted)',fontSize:12,fontWeight:600}}>{l.type}</span></td>
+                        <td style={{fontSize:13}}>{l.action}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr><td colSpan={4} style={{textAlign:'center', padding:40, color:'var(--text-muted)'}}>Không có dữ liệu phù hợp</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -294,7 +333,20 @@ export default function AdminPage() {
         <>
           <div style={{display:'flex',justifyContent:'space-between',marginBottom:16,alignItems:'center'}}>
             <div className="section-label">Quản lý giá theo mùa</div>
-            <button className="btn btn-primary btn-sm" onClick={() => toast('Đang lưu cấu hình giá...', 'info')}><Plus size={14}/> Lưu cấu hình</button>
+            <button className="btn btn-primary btn-sm" onClick={async () => {
+              try {
+                const promises = roomTypes.map(rt => {
+                  const basePrice = Number((document.getElementById(`rt_base_${rt.id}`) as HTMLInputElement).value);
+                  const weekendPrice = Number((document.getElementById(`rt_weekend_${rt.id}`) as HTMLInputElement).value);
+                  const peakMultiplier = Number((document.getElementById(`rt_peak_${rt.id}`) as HTMLInputElement).value);
+                  return updateRoomType(rt.id, { basePrice, weekendPrice, peakMultiplier });
+                });
+                await Promise.all(promises);
+                toast('Đã lưu tất cả thay đổi cấu hình giá!', 'success');
+              } catch (e: any) {
+                toast(e.message, 'error');
+              }
+            }}><Plus size={14}/> Lưu tất cả thay đổi</button>
           </div>
           <div className="card" style={{padding:0, overflow:'hidden', marginBottom:20}}>
             <div className="table-wrapper">
@@ -313,11 +365,23 @@ export default function AdminPage() {
                   {roomTypes.map(rt => (
                     <tr key={rt.id}>
                       <td style={{fontWeight:700}}>{rt.name}</td>
-                      <td><input type="text" className="form-input" style={{width:120, padding:'4px 8px', height:32}} defaultValue={fmtShort(rt.basePrice)}/></td>
-                      <td><input type="text" className="form-input" style={{width:120, padding:'4px 8px', height:32}} defaultValue={fmtShort(rt.basePrice * 1.2)}/></td>
-                      <td><input type="number" className="form-input" style={{width:80, padding:'4px 8px', height:32}} defaultValue={1.5} step={0.1}/></td>
+                      <td><input id={`rt_base_${rt.id}`} type="number" className="form-input" style={{width:120, padding:'4px 8px', height:32}} defaultValue={rt.basePrice}/></td>
+                      <td><input id={`rt_weekend_${rt.id}`} type="number" className="form-input" style={{width:120, padding:'4px 8px', height:32}} defaultValue={rt.weekendPrice}/></td>
+                      <td><input id={`rt_peak_${rt.id}`} type="number" className="form-input" style={{width:80, padding:'4px 8px', height:32}} defaultValue={rt.peakMultiplier} step={0.1}/></td>
                       <td style={{fontSize:11, color:'var(--text-muted)'}}>01/06 → 31/08</td>
-                      <td><button className="btn btn-ghost btn-sm" onClick={() => toast('Cập nhật giá thành công!', 'success')}><Edit2 size={13}/></button></td>
+                      <td>
+                        <button className="btn btn-ghost btn-sm" onClick={async () => {
+                          const basePrice = Number((document.getElementById(`rt_base_${rt.id}`) as HTMLInputElement).value);
+                          const weekendPrice = Number((document.getElementById(`rt_weekend_${rt.id}`) as HTMLInputElement).value);
+                          const peakMultiplier = Number((document.getElementById(`rt_peak_${rt.id}`) as HTMLInputElement).value);
+                          try {
+                            await updateRoomType(rt.id, { basePrice, weekendPrice, peakMultiplier });
+                            toast('Cập nhật giá thành công!', 'success');
+                          } catch (e: any) {
+                            toast(e.message, 'error');
+                          }
+                        }}><Edit2 size={13}/></button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

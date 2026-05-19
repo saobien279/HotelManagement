@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import { useHotel } from '@/context/HotelContext';
-import { roomTypes } from '@/context/HotelContext';
 import { useModal } from '@/components/ui/UIProvider';
 import { useToast } from '@/components/ui/UIProvider';
-import { fmtShort, fmtDate, statusLabel, roomTypeLabel, statusBadgeClass, calcNights, TODAY } from '@/lib/utils';
+import { fmtShort, fmtDate, statusLabel, roomTypeLabel, statusBadgeClass, calcNights, TODAY, calcRoomPrice } from '@/lib/utils';
 import { BellRing, Inbox, Send, Home, Users, Plus, Phone, StickyNote, Loader2 } from 'lucide-react';
 
 // ── Reusable Avatar ──────────────────────────
@@ -23,7 +22,7 @@ function Avatar({ name, color }: { name: string; color: string }) {
 
 export default function FrontDeskPage() {
   const [activeTab, setActiveTab] = useState<'checkin'|'checkout'|'staying'|'groups'>('checkin');
-  const { rooms, reservations, services, updateReservationStatus, addReservation, loading } = useHotel();
+  const { rooms, reservations, services, updateReservationStatus, addReservation, roomTypes, loading } = useHotel();
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
 
@@ -173,11 +172,12 @@ export default function FrontDeskPage() {
     const rt       = roomTypeLabel[r.roomType];
 
     openModal(`Hóa đơn – ${r.id}`, (
-      <div>
+      <div className="invoice-print-container">
         {/* Header */}
         <div style={{ textAlign:'center', marginBottom:16, paddingBottom:14, borderBottom:'2px dashed var(--border)' }}>
           <div style={{ fontWeight:900, fontSize:18, letterSpacing:-0.5 }}>🏨 HOTEL OS</div>
           <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>Hóa đơn thanh toán</div>
+          <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:4 }}>Ngày in: {fmtDate(TODAY)} {new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}</div>
         </div>
         {/* Guest block */}
         <div style={{ marginBottom:14 }}>
@@ -296,7 +296,7 @@ export default function FrontDeskPage() {
             guestName: name, phone, roomId, roomType: typeId,
             checkIn, checkOut, adults: 1, children: 0,
             status: 'checkedin', source: 'direct', note,
-            total: rt.basePrice * nights,
+            total: calcRoomPrice(checkIn, checkOut, rt),
           });
           closeModal();
           toast(`✅ Walk-in thành công! ${name} – Phòng ${roomId}`, 'success');

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { readDB, writeDB } from '@/lib/db';
+import { readDB, writeDB, appendLog } from '@/lib/db';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -24,6 +24,10 @@ export async function PATCH(req: Request, { params }: Params) {
   if (typeof body.minStock === 'number') item.minStock = body.minStock;
 
   db.inventory[idx] = item;
+  
+  const logMsg = body.adjustment ? `Điều chỉnh kho ${item.name}: ${body.adjustment > 0 ? '+' : ''}${body.adjustment}` : `Cập nhật tồn kho ${item.name}: ${item.stock}`;
+  appendLog(db, 'Kho', logMsg, 'housekeeping');
+
   await writeDB(db);
 
   return NextResponse.json({ data: item });

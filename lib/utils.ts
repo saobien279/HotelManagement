@@ -121,3 +121,32 @@ export const calcADR = (totalRevenue: number, roomNightsSold: number): number =>
 /** RevPAR – Revenue per Available Room */
 export const calcRevPAR = (totalRevenue: number, totalRooms: number, days: number): number =>
   totalRooms > 0 && days > 0 ? Math.round(totalRevenue / (totalRooms * days)) : 0;
+
+/** Calculate dynamic room price based on dates and multipliers */
+export const calcRoomPrice = (checkIn: string, checkOut: string, roomType: { basePrice: number, weekendPrice: number, peakMultiplier: number }): number => {
+  if (!checkIn || !checkOut) return roomType.basePrice;
+  
+  const d1 = new Date(checkIn);
+  const d2 = new Date(checkOut);
+  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return roomType.basePrice;
+
+  let total = 0;
+  let curr = new Date(d1);
+
+  while (curr < d2) {
+    const day = curr.getDay(); // 0: Sun, 1: Mon, ..., 5: Fri, 6: Sat
+    const month = curr.getMonth(); // 0-11
+    
+    let price = (day === 5 || day === 6 || day === 0) ? roomType.weekendPrice : roomType.basePrice;
+    
+    // Seasonal multiplier (June, July, August as Peak)
+    if (month >= 5 && month <= 7) {
+      price *= roomType.peakMultiplier;
+    }
+    
+    total += price;
+    curr.setDate(curr.getDate() + 1);
+  }
+
+  return Math.max(roomType.basePrice, Math.round(total));
+};

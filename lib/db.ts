@@ -5,11 +5,11 @@
 
 import { createClient } from 'redis';
 import {
-  initialRooms, initialReservations, initialServices,
+  initialRoomTypes, initialRooms, initialReservations, initialServices,
   initialInventory, initialUsers, activityLog,
 } from '@/lib/data';
 import type {
-  Room, Reservation, Service, InventoryItem, User, ActivityLog,
+  RoomType, Room, Reservation, Service, InventoryItem, User, ActivityLog,
 } from '@/lib/types';
 
 /* ─── In-memory fallback (for local dev without Redis) ── */
@@ -43,6 +43,7 @@ const DB_KEY = 'hotelOS:db';
 
 /* ─── DB Schema ────────────────────────────── */
 export interface DB {
+  roomTypes:    RoomType[];
   rooms:        Room[];
   reservations: Reservation[];
   services:     Service[];
@@ -88,6 +89,7 @@ export async function writeDB(db: DB): Promise<void> {
 
 async function getSeedData(): Promise<DB> {
   return {
+    roomTypes:    initialRoomTypes,
     rooms:        initialRooms,
     reservations: initialReservations,
     services:     initialServices,

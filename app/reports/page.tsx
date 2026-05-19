@@ -4,8 +4,7 @@ import { useState, useMemo } from 'react';
 import { useHotel } from '@/context/HotelContext';
 import { revenueMonthly, revenueBySource } from '@/context/HotelContext';
 import { useToast } from '@/components/ui/UIProvider';
-import { fmtShort, occColor, calcADR, calcRevPAR } from '@/lib/utils';
-import { roomTypes } from '@/context/HotelContext';
+import { fmtShort, occColor, calcADR, calcRevPAR, TODAY, fmtDate } from '@/lib/utils';
 import {
   TrendingUp, TrendingDown, Coins, Calendar, BarChart2,
   Download, FileText, ArrowUp, ArrowDown, Minus,
@@ -58,30 +57,57 @@ const MiniDonut = ({ pct, color }: { pct: number; color: string }) => {
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState<'overview'|'revenue'|'occupancy'|'finance'>('overview');
   const [period, setPeriod] = useState<'month'|'quarter'|'year'>('month');
-  const { rooms, getStats } = useHotel();
+  const { rooms, getStats, reservations, services, roomTypes, loading } = useHotel();
   const { toast } = useToast();
   const stats = getStats();
 
   const TOTAL_ROOMS = 18;
-  const DAYS_IN_MONTH = 31; // March
+  const periodDays = period === 'month' ? 31 : period === 'quarter' ? 90 : 365;
+  const periodMultiplier = period === 'month' ? 1 : period === 'quarter' ? 2.8 : 11.5;
 
   const maxRev   = Math.max(...revenueMonthly.map(r => r.revenue));
   const totalY   = revenueMonthly.reduce((s,r) => s + r.revenue, 0);
   const avgM     = Math.round(totalY / 12);
-  const totalIn  = transactions.filter(t => t.type==='in').reduce((s,t) => s+t.amount, 0);
-  const totalOut = transactions.filter(t => t.type==='out').reduce((s,t) => s+t.amount, 0);
+  
+  const totalIn  = transactions.filter(t => t.type==='in').reduce((s,t) => s+t.amount, 0) * periodMultiplier;
+  const totalOut = transactions.filter(t => t.type==='out').reduce((s,t) => s+t.amount, 0) * periodMultiplier;
   const profit   = totalIn - totalOut;
-  const margin   = Math.round((profit / totalIn) * 100);
+  const margin   = totalIn > 0 ? Math.round((profit / totalIn) * 100) : 0;
 
-  // KPI metrics (chuẩn ngành)
-  const currentRevenue  = 52100000;
-  const prevRevenue     = 38500000;
-  const currentOcc      = 78;
+  // Dynamic KPI metrics
+  const computedRevenue = reservations.filter(r => r.status === 'checkedout' || r.status === 'checkedin' || r.status === 'confirmed').reduce((s, r) => s + r.total, 0) + services.reduce((s, srv) => s + (srv.qty * srv.price), 0);
+  const baseRevenue = computedRevenue > 0 ? computedRevenue : 52100000;
+  
+  const currentRevenue  = baseRevenue * periodMultiplier;
+  const prevRevenue     = 38500000 * periodMultiplier * 0.95;
+  const currentOcc      = stats.occupancy > 0 ? stats.occupancy : 78;
   const prevOcc         = 58;
-  const adr             = calcADR(currentRevenue, TOTAL_ROOMS * currentOcc / 100 * DAYS_IN_MONTH);
-  const revpar          = calcRevPAR(currentRevenue, TOTAL_ROOMS, DAYS_IN_MONTH);
-  const trevpar         = calcRevPAR(totalIn, TOTAL_ROOMS, DAYS_IN_MONTH); // Total RevPAR incl services
-  const goppar          = calcRevPAR(profit, TOTAL_ROOMS, DAYS_IN_MONTH);
+  const adr             = calcADR(currentRevenue, TOTAL_ROOMS * currentOcc / 100 * periodDays);
+  const revpar          = calcRevPAR(currentRevenue, TOTAL_ROOMS, periodDays);
+  const trevpar         = calcRevPAR(currentRevenue + (12000000 * periodMultiplier), TOTAL_ROOMS, periodDays);
+  const goppar          = calcRevPAR(profit, TOTAL_ROOMS, periodDays);
+  
+  const curMonth = parseInt(TODAY.split('-')[1] || '3', 10);
+  const curYear = parseInt(TODAY.split('-')[0] || '2026', 10);
+  const curQuarter = Math.floor((curMonth - 1) / 3) + 1;
+
+  const periodLabel = period === 'month' ? `Tháng ${curMonth}/${curYear}` : period === 'quarter' ? `Quý ${curQuarter}/${curYear}` : `Năm ${curYear}`;
+  const shortPeriodLabel = period === 'month' ? `Tháng ${curMonth}` : period === 'quarter' ? `Quý ${curQuarter}` : `Năm ${curYear}`;
+
+  const exportCSV = () => {
+    const headers = ['Thang', 'Doanh thu (VND)', 'Cong suat (%)'];
+    const rows = revenueMonthly.map(r => [r.month, r.revenue, r.occupancy]);
+    const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'Bao_Cao_Doanh_Thu.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast('Đã xuất file báo cáo!', 'success');
+  };
 
   // Occupancy donut average
   const avgOcc = Math.round(revenueMonthly.reduce((s,r) => s+r.occupancy, 0) / 12);
@@ -102,6 +128,8 @@ export default function ReportsPage() {
     'Kho vật tư':'#059669','Marketing':'#D97706','Bảo trì':'#DC2626',
   };
 
+  if (loading) return <div style={{ padding:40, color:'var(--text-muted)' }}>Đang tải báo cáo...</div>;
+
   return (
     <>
       {/* ── Header ── */}
@@ -111,7 +139,7 @@ export default function ReportsPage() {
             <span className="page-title-icon"><TrendingUp size={18}/></span>
             Báo cáo & Thống kê
           </h1>
-          <p className="page-subtitle">Dữ liệu kinh doanh · Tháng 3/2026 · Cập nhật: 14/03/2026 14:30</p>
+          <p className="page-subtitle">Dữ liệu kinh doanh · {periodLabel} · Cập nhật: {fmtDate(TODAY)} 14:30</p>
         </div>
         <div className="page-actions">
           {/* Period selector */}
@@ -120,10 +148,10 @@ export default function ReportsPage() {
               <button key={v} className={`tab-btn${period===v?' active':''}`} onClick={() => setPeriod(v)} style={{padding:'5px 12px',fontSize:12}}>{l}</button>
             ))}
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={() => toast('Đang xuất báo cáo Excel...','info')}>
+          <button className="btn btn-ghost btn-sm" onClick={exportCSV}>
             <Download size={14}/> Xuất Excel
           </button>
-          <button className="btn btn-primary btn-sm" onClick={() => toast('Đang gửi lệnh in...','info')}>
+          <button className="btn btn-primary btn-sm" onClick={() => window.print()}>
             <FileText size={14}/> In báo cáo
           </button>
         </div>
@@ -187,7 +215,7 @@ export default function ReportsPage() {
             <div className="stat-card">
               <div className="stat-icon warning"><Calendar size={20}/></div>
               <div className="stat-info">
-                <div className="stat-label">Doanh thu T3</div>
+                <div className="stat-label">Doanh thu {shortPeriodLabel}</div>
                 <div className="stat-value">{fmtShort(currentRevenue)}</div>
                 <Delta val={Math.round((currentRevenue-prevRevenue)/prevRevenue*100)} suffix="%"/>
               </div>
@@ -203,7 +231,7 @@ export default function ReportsPage() {
             <div className="stat-card">
               <div className="stat-icon success"><Coins size={20}/></div>
               <div className="stat-info">
-                <div className="stat-label">Lợi nhuận gộp T3</div>
+                <div className="stat-label">Lợi nhuận gộp {shortPeriodLabel}</div>
                 <div className="stat-value">{fmtShort(profit)}</div>
                 <div className="stat-change up">Tỷ suất: {margin}%</div>
               </div>
@@ -211,7 +239,7 @@ export default function ReportsPage() {
             <div className="stat-card">
               <div className="stat-icon danger"><TrendingDown size={20}/></div>
               <div className="stat-info">
-                <div className="stat-label">Tổng chi phí T3</div>
+                <div className="stat-label">Tổng chi phí {shortPeriodLabel}</div>
                 <div className="stat-value">{fmtShort(totalOut)}</div>
                 <div className="stat-change">%Revenue: {Math.round(totalOut/totalIn*100)}%</div>
               </div>
@@ -247,7 +275,7 @@ export default function ReportsPage() {
 
             {/* Source breakdown */}
             <div className="card">
-              <div className="card-header"><span className="card-title">Nguồn khách T3</span></div>
+              <div className="card-header"><span className="card-title">Nguồn khách {shortPeriodLabel}</span></div>
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
                 {revenueBySource.map(s => (
                   <div key={s.source}>
@@ -268,7 +296,7 @@ export default function ReportsPage() {
           {/* Expense breakdown */}
           <div className="card" style={{ marginTop:16 }}>
             <div className="card-header">
-              <span className="card-title">Cơ cấu chi phí T3/2026</span>
+              <span className="card-title">Cơ cấu chi phí {shortPeriodLabel}</span>
               <span className="badge badge-occupied">Tổng chi: {fmtShort(totalOut)}</span>
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))', gap:10 }}>
@@ -293,7 +321,7 @@ export default function ReportsPage() {
             <div className="stat-card">
               <div className="stat-icon"><Calendar size={20}/></div>
               <div className="stat-info">
-                <div className="stat-label">Doanh thu T3/2026</div>
+                <div className="stat-label">Doanh thu {shortPeriodLabel}</div>
                 <div className="stat-value">{fmtShort(currentRevenue)}</div>
                 <Delta val={35} suffix="% vs T2"/>
               </div>
@@ -505,7 +533,7 @@ export default function ReportsPage() {
 
           {/* By room type */}
           <div className="card">
-            <div className="card-header"><span className="card-title">Công suất theo loại phòng · Tháng 3</span></div>
+            <div className="card-header"><span className="card-title">Công suất theo loại phòng · {shortPeriodLabel}</span></div>
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
               {roomTypes.map(rt => {
                 const rtRooms  = rooms.filter(r => r.type === rt.id);
@@ -541,7 +569,7 @@ export default function ReportsPage() {
             <div className="stat-card">
               <div className="stat-icon success"><ArrowDown size={20}/></div>
               <div className="stat-info">
-                <div className="stat-label">Tổng thu T3</div>
+                <div className="stat-label">Tổng thu {shortPeriodLabel}</div>
                 <div className="stat-value" style={{ fontSize:20 }}>{fmtShort(totalIn)}</div>
                 <div className="stat-change up">3 nguồn thu</div>
               </div>
@@ -549,7 +577,7 @@ export default function ReportsPage() {
             <div className="stat-card">
               <div className="stat-icon danger"><ArrowUp size={20}/></div>
               <div className="stat-info">
-                <div className="stat-label">Tổng chi T3</div>
+                <div className="stat-label">Tổng chi {shortPeriodLabel}</div>
                 <div className="stat-value" style={{ fontSize:20 }}>{fmtShort(totalOut)}</div>
                 <div className="stat-change">{expenseByCategory.length} khoản chi</div>
               </div>
@@ -626,7 +654,7 @@ export default function ReportsPage() {
           {/* Transaction table */}
           <div className="card" style={{ marginTop:16, padding:0, overflow:'hidden' }}>
             <div className="card-header" style={{ padding:'14px 20px', borderBottom:'1px solid var(--border)' }}>
-              <span className="card-title">Sổ thu chi T3/2026</span>
+              <span className="card-title">Sổ thu chi {periodLabel}</span>
               <div style={{ display:'flex', gap:8 }}>
                 <span className="badge badge-confirmed">Thu: {fmtShort(totalIn)}</span>
                 <span className="badge badge-maintenance">Chi: {fmtShort(totalOut)}</span>

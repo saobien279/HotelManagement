@@ -1305,7 +1305,7 @@ body {
    PRINT
 ───────────────────────────────────────── */
 @media print {
-  .sidebar, .topbar, .page-actions, .btn, .tabs { display: none !important; }
+  .sidebar, .topbar, .page-actions, .btn, .tabs, .mobile-menu-btn { display: none !important; }
   .main-content { margin-left: 0; }
   .page-container { padding: 0; }
   .card { box-shadow: none; border: 1px solid #ccc; }
@@ -1316,6 +1316,7 @@ body {
   /* Hide all UI elements except the modal content */
   .sidebar, 
   .header, 
+  .topbar,
   .page-header, 
   .tabs, 
   .stats-grid, 
@@ -1333,29 +1334,35 @@ body {
     background: white !important;
     padding: 0 !important;
     margin: 0 !important;
+    overflow: visible !important;
   }
 
-  .modal-container {
-    position: static !important;
+  .modal-overlay {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
     background: white !important;
     padding: 0 !important;
     display: block !important;
     overflow: visible !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    height: auto !important;
   }
 
-  .modal-content {
+  .modal-box {
     width: 100% !important;
     max-width: 100% !important;
     box-shadow: none !important;
     border: none !important;
-    padding: 0 !important;
+    padding: 0 20px !important;
     margin: 0 !important;
     background: transparent !important;
     animation: none !important;
     transform: none !important;
   }
 
-  .modal-header, .modal-footer {
+  .modal-header, .modal-footer, .modal-close {
     display: none !important;
   }
 

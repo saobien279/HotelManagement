@@ -2,11 +2,9 @@
 
 import { useState } from 'react';
 import { useHotel } from '@/context/HotelContext';
-import { initialInventory } from '@/lib/data';
-import { roomTypes } from '@/context/HotelContext';
 import { useModal } from '@/components/ui/UIProvider';
 import { useToast } from '@/components/ui/UIProvider';
-import { fmtShort, TODAY } from '@/lib/utils';
+import { fmtShort, TODAY, fmtDate } from '@/lib/utils';
 import { ShoppingCart, Clock, CheckCircle, Coins, ConciergeBell, Package, AlertTriangle, Coffee, Shirt, Utensils, Flower2, Map, Plane, Car } from 'lucide-react';
 
 const serviceTypes = [
@@ -21,9 +19,10 @@ const serviceTypes = [
 
 export default function POSPage() {
   const [activeTab, setActiveTab] = useState<'services'|'inventory'>('services');
-  const { services, reservations, addService, adjustInventory, inventory } = useHotel();
+  const { services, reservations, addService, adjustInventory, inventory, roomTypes, loading } = useHotel();
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
+  const curMonth = parseInt(TODAY.split('-')[1] || '3', 10);
 
   const pending  = services.filter(s=>s.status==='pending').length;
   const billed   = services.filter(s=>s.status==='billed').length;
@@ -62,11 +61,12 @@ export default function POSPage() {
   const openImport = (item: any) => {
     openModal(`Nhập kho: ${item.name}`, (
       <div>
+        <div style={{fontSize:12, color:'var(--text-muted)', marginBottom: 12}}>Ngày nhập: {fmtDate(TODAY)}</div>
         <div className="form-row">
           <div className="form-group"><label className="form-label">Số lượng nhập</label><input id="inv_qty" type="number" className="form-input" defaultValue={50} min={1}/></div>
           <div className="form-group"><label className="form-label">Nhà cung cấp</label><input id="inv_vendor" type="text" className="form-input" placeholder="Công ty ABC"/></div>
         </div>
-        <div className="form-group"><label className="form-label">Ghi chú</label><input id="inv_note" type="text" className="form-input" placeholder="Lô hàng tháng 3..."/></div>
+        <div className="form-group"><label className="form-label">Ghi chú</label><input id="inv_note" type="text" className="form-input" placeholder={`Lô hàng tháng ${curMonth}...`}/></div>
       </div>
     ), [
       { label: 'Lưu nhập kho', cls: 'btn-primary', onClick: async () => { 
@@ -83,20 +83,47 @@ export default function POSPage() {
     ]);
   };
 
-  const openGeneralImport = () => {
-    openModal(`Nhập kho`, (
+  const openExport = (item: any) => {
+    openModal(`Xuất kho: ${item.name}`, (
       <div>
+        <div style={{fontSize:12, color:'var(--text-muted)', marginBottom: 12}}>Ngày xuất: {fmtDate(TODAY)}</div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Số lượng xuất (Tồn: {item.stock})</label><input id="exp_qty" type="number" className="form-input" defaultValue={1} min={1} max={item.stock}/></div>
+          <div className="form-group"><label className="form-label">Người nhận/Bộ phận</label><input id="exp_receiver" type="text" className="form-input" placeholder="Buồng phòng, Nhà hàng..."/></div>
+        </div>
+        <div className="form-group"><label className="form-label">Lý do/Ghi chú</label><input id="exp_note" type="text" className="form-input" placeholder={`Xuất sử dụng tháng ${curMonth}...`}/></div>
+      </div>
+    ), [
+      { label: 'Lưu xuất kho', cls: 'btn-primary', onClick: async () => { 
+        const qty = +(document.getElementById('exp_qty') as HTMLInputElement)?.value || 0;
+        if (qty > item.stock) { toast('Số lượng xuất vượt tồn kho!', 'warn'); return; }
+        try {
+          await adjustInventory(item.id, -qty);
+          closeModal(); 
+          toast(`Đã xuất kho ${qty} ${item.unit} của ${item.name}!`,'success'); 
+        } catch (e: any) {
+          toast(e.message, 'error');
+        }
+      }},
+      { label: 'Hủy', cls: 'btn-ghost', onClick: closeModal },
+    ]);
+  };
+
+  const openGeneralImport = () => {
+    openModal(`Nhập kho chung`, (
+      <div>
+        <div style={{fontSize:12, color:'var(--text-muted)', marginBottom: 12}}>Ngày nhập: {fmtDate(TODAY)}</div>
         <div className="form-group">
           <label className="form-label">Chọn vật tư</label>
           <select id="gen_inv_item" className="form-select">
-            {inventory.map(i => <option key={i.id} value={i.id}>{i.name} ({i.stock} {i.unit})</option>)}
+            {inventory.map(i => <option key={i.id} value={i.id}>{i.name} (Tồn hiện tại: {i.stock} {i.unit})</option>)}
           </select>
         </div>
         <div className="form-row">
           <div className="form-group"><label className="form-label">Số lượng nhập</label><input id="inv_qty" type="number" className="form-input" defaultValue={50} min={1}/></div>
           <div className="form-group"><label className="form-label">Nhà cung cấp</label><input id="inv_vendor" type="text" className="form-input" placeholder="Công ty ABC"/></div>
         </div>
-        <div className="form-group"><label className="form-label">Ghi chú</label><input id="inv_note" type="text" className="form-input" placeholder="Lô hàng tháng 3..."/></div>
+        <div className="form-group"><label className="form-label">Ghi chú</label><input id="inv_note" type="text" className="form-input" placeholder={`Lô hàng tháng ${curMonth}...`}/></div>
       </div>
     ), [
       { label: 'Lưu nhập kho', cls: 'btn-primary', onClick: async () => { 
@@ -116,7 +143,44 @@ export default function POSPage() {
     ]);
   };
 
+  const openGeneralExport = () => {
+    openModal(`Xuất kho chung`, (
+      <div>
+        <div style={{fontSize:12, color:'var(--text-muted)', marginBottom: 12}}>Ngày xuất: {fmtDate(TODAY)}</div>
+        <div className="form-group">
+          <label className="form-label">Chọn vật tư</label>
+          <select id="gen_exp_item" className="form-select">
+            {inventory.filter(i=>i.stock>0).map(i => <option key={i.id} value={i.id}>{i.name} (Tồn: {i.stock} {i.unit})</option>)}
+          </select>
+        </div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Số lượng xuất</label><input id="exp_qty" type="number" className="form-input" defaultValue={1} min={1}/></div>
+          <div className="form-group"><label className="form-label">Người nhận/Bộ phận</label><input id="exp_receiver" type="text" className="form-input" placeholder="Buồng phòng, Nhà hàng..."/></div>
+        </div>
+        <div className="form-group"><label className="form-label">Lý do/Ghi chú</label><input id="exp_note" type="text" className="form-input" placeholder={`Xuất sử dụng tháng ${curMonth}...`}/></div>
+      </div>
+    ), [
+      { label: 'Lưu xuất kho', cls: 'btn-primary', onClick: async () => { 
+        const itemId = (document.getElementById('gen_exp_item') as HTMLSelectElement)?.value;
+        const qty = +(document.getElementById('exp_qty') as HTMLInputElement)?.value || 0;
+        if (!itemId || !qty) return;
+        const item = inventory.find(i => i.id === itemId);
+        if (item && qty > item.stock) { toast('Số lượng xuất vượt tồn kho!', 'warn'); return; }
+        try {
+          await adjustInventory(itemId, -qty);
+          closeModal(); 
+          toast(`Đã xuất kho ${qty} ${item?.unit} của ${item?.name}!`,'success'); 
+        } catch (e: any) {
+          toast(e.message, 'error');
+        }
+      }},
+      { label: 'Hủy', cls: 'btn-ghost', onClick: closeModal },
+    ]);
+  };
+
   const lowStock = inventory.filter(i=>i.stock<=i.minStock);
+
+  if (loading) return <div style={{ padding:40, color:'var(--text-muted)' }}>Đang tải dữ liệu kho...</div>;
 
   return (
     <>
@@ -200,7 +264,7 @@ export default function POSPage() {
             )}
             <div style={{display:'flex',gap:8}}>
               <button className="btn btn-ghost btn-sm" onClick={openGeneralImport}>Nhập kho</button>
-              <button className="btn btn-primary btn-sm" onClick={()=>toast('Đang mở form xuất kho...','info')}>Xuất kho</button>
+              <button className="btn btn-primary btn-sm" onClick={openGeneralExport}>Xuất kho</button>
             </div>
           </div>
           <div className="card" style={{padding:0,overflow:'hidden'}}>
@@ -220,7 +284,12 @@ export default function POSPage() {
                         <td>{fmtShort(i.cost)}</td>
                         <td style={{fontWeight:600}}>{fmtShort(i.stock*i.cost)}</td>
                         <td>{isLow?<span className="badge badge-maintenance">Sắp hết</span>:<span className="badge badge-vacant">Đủ</span>}</td>
-                         <td><button className="btn btn-ghost btn-sm" onClick={()=>openImport(i)}>Nhập</button></td>
+                         <td>
+                           <div style={{display:'flex',gap:6}}>
+                             <button className="btn btn-ghost btn-sm" onClick={()=>openImport(i)} style={{padding:'4px 8px'}}>Nhập</button>
+                             <button className="btn btn-ghost btn-sm" onClick={()=>openExport(i)} style={{padding:'4px 8px'}}>Xuất</button>
+                           </div>
+                         </td>
                       </tr>
                     );
                   })}

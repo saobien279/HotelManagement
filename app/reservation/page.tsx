@@ -2,12 +2,11 @@
 
 import { useState } from 'react';
 import { useHotel } from '@/context/HotelContext';
-import { roomTypes } from '@/context/HotelContext';
 import { useModal } from '@/components/ui/UIProvider';
 import { useToast } from '@/components/ui/UIProvider';
 import {
   fmtShort, fmtDate, statusLabel, roomTypeLabel,
-  statusBadgeClass, sourceLabel, sourceCls, calcNights, TODAY,
+  statusBadgeClass, sourceLabel, sourceCls, calcNights, TODAY, calcRoomPrice,
 } from '@/lib/utils';
 import {
   Calendar, LayoutGrid, List, Plus, Search,
@@ -23,7 +22,7 @@ export default function ReservationPage() {
   const [listStatus, setListStatus]     = useState('all');
   const [listSource, setListSource]     = useState('all');
 
-  const { rooms, reservations, services, updateRoomStatus, updateReservationStatus, addReservation } = useHotel();
+  const { rooms, reservations, services, updateRoomStatus, updateReservationStatus, addReservation, roomTypes, loading } = useHotel();
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
 
@@ -156,7 +155,7 @@ export default function ReservationPage() {
           status:   'confirmed',
           source:   (document.getElementById('nb_source') as HTMLSelectElement).value as any,
           note:     (document.getElementById('nb_note') as HTMLTextAreaElement).value,
-          total:    rt.basePrice * nights,
+          total:    calcRoomPrice(checkIn, checkOut, rt),
         });
         closeModal();
         toast(`Đã tạo đặt phòng cho ${name} (${nights} đêm)`, 'success');
@@ -233,6 +232,8 @@ export default function ReservationPage() {
     { status:'cleaning',    label:'Đang dọn',   color:'var(--color-warning)', count: countByStatus('cleaning') },
     { status:'maintenance', label:'Bảo trì',    color:'var(--color-danger)',  count: countByStatus('maintenance') },
   ];
+
+  if (loading) return <div style={{ padding:40, color:'var(--text-muted)' }}>Đang tải sơ đồ phòng...</div>;
 
   return (
     <>

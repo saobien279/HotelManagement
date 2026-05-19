@@ -7,13 +7,13 @@ import type {
   InventoryItem, ActivityLog, User, RevenueData, RevenueBySource,
 } from './types';
 
-export const roomTypes: RoomType[] = [
-  { id: 'SGL', name: 'Single',  capacity: 1, basePrice: 350000 },
-  { id: 'DBL', name: 'Double',  capacity: 2, basePrice: 550000 },
-  { id: 'TWN', name: 'Twin',    capacity: 2, basePrice: 600000 },
-  { id: 'DLX', name: 'Deluxe', capacity: 2, basePrice: 850000 },
-  { id: 'SUT', name: 'Suite',   capacity: 4, basePrice: 1500000 },
-  { id: 'FAM', name: 'Family',  capacity: 4, basePrice: 1200000 },
+export const initialRoomTypes: RoomType[] = [
+  { id: 'SGL', name: 'Single',  capacity: 1, basePrice: 350000, weekendPrice: 400000, peakMultiplier: 1.2 },
+  { id: 'DBL', name: 'Double',  capacity: 2, basePrice: 550000, weekendPrice: 650000, peakMultiplier: 1.3 },
+  { id: 'TWN', name: 'Twin',    capacity: 2, basePrice: 600000, weekendPrice: 700000, peakMultiplier: 1.3 },
+  { id: 'DLX', name: 'Deluxe', capacity: 2, basePrice: 850000, weekendPrice: 1000000, peakMultiplier: 1.5 },
+  { id: 'SUT', name: 'Suite',   capacity: 4, basePrice: 1500000, weekendPrice: 1800000, peakMultiplier: 1.5 },
+  { id: 'FAM', name: 'Family',  capacity: 4, basePrice: 1200000, weekendPrice: 1400000, peakMultiplier: 1.4 },
 ];
 
 export const initialRooms: Room[] = [
@@ -73,7 +73,8 @@ export const initialInventory: InventoryItem[] = [
   { id: 'INV005', name: 'Nước đóng chai',  category: 'beverage', unit: 'chai', stock: 96,  minStock: 48, cost: 8000 },
   { id: 'INV006', name: 'Cà phê gói',      category: 'beverage', unit: 'gói',  stock: 150, minStock: 50, cost: 5000 },
   { id: 'INV007', name: 'Bia lon',          category: 'beverage', unit: 'lon',  stock: 72,  minStock: 24, cost: 22000 },
-  { id: 'INV008', name: 'Bóng đèn LED',    category: 'supplies', unit: 'cái',  stock: 15,  minStock: 10, cost: 45000 },
+  { id: 'INV008', name: 'Bộ bàn chải',     category: 'amenity',  unit: 'bộ',   stock: 120, minStock: 30, cost: 4500 },
+  { id: 'INV009', name: 'Bóng đèn LED',    category: 'supplies', unit: 'cái',  stock: 15,  minStock: 10, cost: 45000 },
 ];
 
 export const activityLog: ActivityLog[] = [

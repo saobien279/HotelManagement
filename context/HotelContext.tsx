@@ -5,16 +5,16 @@ import React, {
   useEffect, ReactNode,
 } from 'react';
 import {
-  roomTypes, guests, activityLog as staticLog,
+  guests, activityLog as staticLog,
   revenueMonthly, revenueBySource,
 } from '@/lib/data';
 import type {
-  Room, Reservation, Service, User, InventoryItem,
+  RoomType, Room, Reservation, Service, User, InventoryItem,
   RoomStatus, ReservationStatus, ActivityLog,
 } from '@/lib/types';
 
 /* ─── Re-export static / analytics data ──────── */
-export { roomTypes, guests, revenueMonthly, revenueBySource };
+export { guests, revenueMonthly, revenueBySource };
 export { initialInventory } from '@/lib/data';
 
 /* ─── API helpers ─────────────────────────────── */
@@ -43,6 +43,7 @@ export interface HotelStats {
 
 /* ─── Context value ───────────────────────────── */
 interface HotelContextValue {
+  roomTypes: RoomType[];
   rooms: Room[];
   reservations: Reservation[];
   services: Service[];
@@ -60,6 +61,7 @@ interface HotelContextValue {
   addUser: (data: Omit<User, 'id'>) => Promise<void>;
   updateUser: (id: string, data: Partial<User>) => Promise<void>;
   adjustInventory: (id: string, adjustment: number) => Promise<void>;
+  updateRoomType: (id: string, data: Partial<RoomType>) => Promise<void>;
   // re-fetch helpers
   refreshAll: () => Promise<void>;
   getStats: () => HotelStats;   // legacy sync helper
@@ -68,6 +70,7 @@ interface HotelContextValue {
 const HotelContext = createContext<HotelContextValue | null>(null);
 
 export function HotelProvider({ children }: { children: ReactNode }) {
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -78,6 +81,7 @@ export function HotelProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   /* ─── Initial load ──────────────────────────── */
+  const fetchRoomTypes = useCallback(async () => setRoomTypes(await api<RoomType[]>('/api/room-types')), []);
   const fetchRooms = useCallback(async () => setRooms(await api<Room[]>('/api/rooms')), []);
   const fetchReservations = useCallback(async () => setReservations(await api<Reservation[]>('/api/reservations')), []);
   const fetchServices = useCallback(async () => setServices(await api<Service[]>('/api/services')), []);
@@ -88,10 +92,10 @@ export function HotelProvider({ children }: { children: ReactNode }) {
 
   const refreshAll = useCallback(async () => {
     await Promise.all([
-      fetchRooms(), fetchReservations(), fetchServices(),
+      fetchRoomTypes(), fetchRooms(), fetchReservations(), fetchServices(),
       fetchUsers(), fetchInventory(), fetchActivityLog(), fetchStats(),
     ]);
-  }, [fetchRooms, fetchReservations, fetchServices, fetchUsers, fetchInventory, fetchActivityLog, fetchStats]);
+  }, [fetchRoomTypes, fetchRooms, fetchReservations, fetchServices, fetchUsers, fetchInventory, fetchActivityLog, fetchStats]);
 
   useEffect(() => {
     refreshAll().finally(() => setLoading(false));
@@ -100,23 +104,23 @@ export function HotelProvider({ children }: { children: ReactNode }) {
   /* ─── Mutators ──────────────────────────────── */
   const updateRoomStatus = useCallback(async (roomId: string, status: RoomStatus) => {
     await api(`/api/rooms/${roomId}`, { method: 'PATCH', body: JSON.stringify({ status }) });
-    await Promise.all([fetchRooms(), fetchStats()]);
-  }, [fetchRooms, fetchStats]);
+    await Promise.all([fetchRooms(), fetchStats(), fetchActivityLog()]);
+  }, [fetchRooms, fetchStats, fetchActivityLog]);
 
   const addReservation = useCallback(async (data: Omit<Reservation, 'id'>) => {
     await api('/api/reservations', { method: 'POST', body: JSON.stringify(data) });
-    await Promise.all([fetchReservations(), fetchRooms(), fetchStats()]);
-  }, [fetchReservations, fetchStats]);
+    await Promise.all([fetchReservations(), fetchRooms(), fetchStats(), fetchActivityLog()]);
+  }, [fetchReservations, fetchRooms, fetchStats, fetchActivityLog]);
 
   const updateReservationStatus = useCallback(async (id: string, status: ReservationStatus, extra?: any) => {
     await api(`/api/reservations/${id}`, { method: 'PATCH', body: JSON.stringify({ status, ...extra }) });
-    await Promise.all([fetchReservations(), fetchRooms(), fetchServices(), fetchStats()]);
-  }, [fetchReservations, fetchRooms, fetchServices, fetchStats]);
+    await Promise.all([fetchReservations(), fetchRooms(), fetchServices(), fetchStats(), fetchActivityLog()]);
+  }, [fetchReservations, fetchRooms, fetchServices, fetchStats, fetchActivityLog]);
 
   const addService = useCallback(async (data: Omit<Service, 'id'>) => {
     await api('/api/services', { method: 'POST', body: JSON.stringify(data) });
-    await Promise.all([fetchServices(), fetchStats()]);
-  }, [fetchServices, fetchStats]);
+    await Promise.all([fetchServices(), fetchStats(), fetchActivityLog()]);
+  }, [fetchServices, fetchStats, fetchActivityLog]);
 
   const billService = useCallback(async (id: string) => {
     await api(`/api/services/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'billed' }) });
@@ -135,8 +139,13 @@ export function HotelProvider({ children }: { children: ReactNode }) {
 
   const adjustInventory = useCallback(async (id: string, adjustment: number) => {
     await api(`/api/inventory/${id}`, { method: 'PATCH', body: JSON.stringify({ adjustment }) });
-    await fetchInventory();
-  }, [fetchInventory]);
+    await Promise.all([fetchInventory(), fetchActivityLog(), fetchStats()]);
+  }, [fetchInventory, fetchActivityLog, fetchStats]);
+
+  const updateRoomType = useCallback(async (id: string, data: Partial<RoomType>) => {
+    await api(`/api/room-types/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    await Promise.all([fetchRoomTypes(), fetchActivityLog()]);
+  }, [fetchRoomTypes, fetchActivityLog]);
 
   /* ─── Legacy sync helper (still used in some pages) ── */
   const getStats = useCallback((): HotelStats => {
@@ -160,9 +169,9 @@ export function HotelProvider({ children }: { children: ReactNode }) {
 
   return (
     <HotelContext.Provider value={{
-      rooms, reservations, services, users, inventory, activityLog, stats, loading,
+      roomTypes, rooms, reservations, services, users, inventory, activityLog, stats, loading,
       updateRoomStatus, addReservation, updateReservationStatus,
-      addService, billService, addUser, updateUser, adjustInventory,
+      addService, billService, addUser, updateUser, adjustInventory, updateRoomType,
       refreshAll, getStats,
     }}>
       {children}
