@@ -5,7 +5,7 @@ import { useHotel } from '@/context/HotelContext';
 import { useModal } from '@/components/ui/UIProvider';
 import { useToast } from '@/components/ui/UIProvider';
 import { fmtShort, TODAY } from '@/lib/utils';
-import { Settings, Users, Building, List, Globe, Plus, Edit2, Lock, Unlock, Coins } from 'lucide-react';
+import { Settings, Users, Building, List, Globe, Plus, Edit2, Lock, Unlock, Coins, RefreshCw, Sliders, Mail, MessageSquare, Send, Eye } from 'lucide-react';
 
 const roleColors: Record<string,{color:string;bg:string;label:string}> = {
   admin:        { color:'#a78bfa', bg:'rgba(139,92,246,0.15)',  label:'Admin' },
@@ -28,14 +28,63 @@ const typeColors: Record<string,string> = {
 };
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'users'|'rooms'|'log'|'channel'|'pricing'>('users');
+  const [activeTab, setActiveTab] = useState<'users'|'rooms'|'log'|'channel'|'pricing'|'message'>('users');
   const [logSearch, setLogSearch] = useState('');
   const [logType, setLogType] = useState('all');
   const [logPeriod, setLogPeriod] = useState('all');
+
+  const [selectedBooking, setSelectedBooking] = useState('');
+  const [selectedMsgType, setSelectedMsgType] = useState<'booking_confirm'|'checkin_remind'|'checkout_thanks'|'promo'>('booking_confirm');
+  const [customMsgTemplate, setCustomMsgTemplate] = useState('Kính chào quý khách [TÊN_KHÁCH], HotelOS xác nhận đặt phòng [MÃ_ĐẶT_PHÒNG] thành công. Thời gian lưu trú: [CHECK_IN] → [CHECK_OUT]. Rất hân hạnh được phục vụ quý khách!');
+  const [sendingMsg, setSendingMsg] = useState(false);
   
-  const { users, roomTypes, addUser, updateUser, updateRoomType, activityLog, loading } = useHotel();
+  const { 
+    users, roomTypes, addUser, updateUser, updateRoomType, 
+    activityLog, loading, channels, updateChannel,
+    messages, sendManualMessage, reservations
+  } = useHotel();
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
+
+  const openConfigureChannel = (ch: any) => {
+    openModal(`Cấu hình kênh: ${ch.name}`, (
+      <div>
+        <div className="form-group" style={{ marginBottom: 16 }}>
+          <label className="form-label">Tỷ lệ hoa hồng (%)</label>
+          <input id="ch_commission" type="number" className="form-input" defaultValue={ch.commission} min={0} max={100} />
+        </div>
+        <div className="form-group" style={{ marginBottom: 16 }}>
+          <label className="form-label">Hệ số điều chỉnh giá (Rate Modifier)</label>
+          <input id="ch_rateModifier" type="number" className="form-input" defaultValue={ch.rateModifier} step={0.01} min={0.5} max={2.0} />
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+            Ví dụ: 1.15 nghĩa là giá phòng trên kênh này sẽ cao hơn 15% so với giá gốc.
+          </p>
+        </div>
+        <div className="form-group" style={{ marginBottom: 16 }}>
+          <label className="form-label">Số phòng phân bổ (Allocated Rooms)</label>
+          <input id="ch_allocated" type="number" className="form-input" defaultValue={ch.allocatedRooms} min={0} max={18} />
+        </div>
+      </div>
+    ), [
+      {
+        label: 'Lưu cấu hình',
+        cls: 'btn-primary',
+        onClick: async () => {
+          const commission = Number((document.getElementById('ch_commission') as HTMLInputElement)?.value) || 0;
+          const rateModifier = Number((document.getElementById('ch_rateModifier') as HTMLInputElement)?.value) || 1.0;
+          const allocatedRooms = Number((document.getElementById('ch_allocated') as HTMLInputElement)?.value) || 0;
+          try {
+            await updateChannel(ch.id, { commission, rateModifier, allocatedRooms });
+            toast(`Đã cập nhật cấu hình kênh ${ch.name}!`, 'success');
+            closeModal();
+          } catch (e: any) {
+            toast(e.message, 'error');
+          }
+        }
+      },
+      { label: 'Hủy', cls: 'btn-ghost', onClick: closeModal }
+    ]);
+  };
 
   const filteredLogs = activityLog.filter(l => {
     const matchesSearch = l.action.toLowerCase().includes(logSearch.toLowerCase()) || 
@@ -70,9 +119,10 @@ export default function AdminPage() {
       { label: 'Tạo tài khoản', cls: 'btn-primary', onClick: async () => {
         const name     = (document.getElementById('nu_name') as HTMLInputElement)?.value.trim();
         const username = (document.getElementById('nu_username') as HTMLInputElement)?.value.trim();
-        if (!name||!username) { toast('Vui lòng điền đầy đủ','warn'); return; }
+        const password = (document.getElementById('nu_pass') as HTMLInputElement)?.value;
+        if (!name||!username||!password) { toast('Vui lòng điền đầy đủ','warn'); return; }
         try {
-          await addUser({ name, username, role:(document.getElementById('nu_role') as HTMLSelectElement)?.value as any, status:'active', lastLogin:'—' });
+          await addUser({ name, username, password, role:(document.getElementById('nu_role') as HTMLSelectElement)?.value as any, status:'active', lastLogin:'—' });
           closeModal(); toast(`Tài khoản ${name} đã được tạo!`,'success');
         } catch (e: any) {
           toast(e.message, 'error');
@@ -107,12 +157,7 @@ export default function AdminPage() {
     ]);
   };
 
-  const channels = [
-    { name:'Booking.com', connected:true,  rooms:12, lastSync:'15:05 hôm nay' },
-    { name:'Agoda',       connected:true,  rooms:12, lastSync:'15:05 hôm nay' },
-    { name:'Expedia',     connected:false, rooms:0,  lastSync:'Chưa kết nối' },
-    { name:'Airbnb',      connected:false, rooms:0,  lastSync:'Chưa kết nối' },
-  ];
+
 
   if (loading) return <div style={{ padding:40, color:'var(--text-muted)' }}>Đang tải cấu hình hệ thống...</div>;
 
@@ -131,6 +176,7 @@ export default function AdminPage() {
         <button className={`tab-btn${activeTab==='log'?' active':''}`} onClick={()=>setActiveTab('log')}><List size={15}/> Lịch sử thao tác</button>
         <button className={`tab-btn${activeTab==='pricing'?' active':''}`} onClick={()=>setActiveTab('pricing')}><Coins size={15}/> Cấu hình giá</button>
         <button className={`tab-btn${activeTab==='channel'?' active':''}`} onClick={()=>setActiveTab('channel')}><Globe size={15}/> Channel Manager</button>
+        <button className={`tab-btn${activeTab==='message'?' active':''}`} onClick={()=>setActiveTab('message')}><Mail size={15}/> Tin nhắn Automation</button>
       </div>
 
       {/* ── USERS ── */}
@@ -285,30 +331,86 @@ export default function AdminPage() {
       {activeTab==='channel' && (
         <>
           <div className="card" style={{marginBottom:20}}>
-            <div className="card-header"><span className="card-title">Kênh phân phối (OTA)</span><span className="badge badge-confirmed">Tự động đồng bộ</span></div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:14}}>
+            <div className="card-header">
+              <span className="card-title">Kênh phân phối (OTA)</span>
+              <span className="badge badge-confirmed">Tự động đồng bộ</span>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:16}}>
               {channels.map(ch=>(
-                <div key={ch.name} style={{background:'var(--bg-elevated)',borderRadius:'var(--radius-lg)',padding:18,border:`2px solid ${ch.connected?'rgba(16,185,129,0.3)':'var(--border)'}`}}>
-                  <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
-                    <Globe size={22} style={{color:ch.connected?'#6EE7B7':'var(--text-muted)'}}/>
-                    <span style={{fontWeight:700,fontSize:15}}>{ch.name}</span>
-                    <span className={`badge ${ch.connected?'badge-confirmed':'badge-muted'}`} style={{marginLeft:'auto'}}>{ch.connected?'Kết nối':'Chưa'}</span>
-                  </div>
-                  {ch.connected?(
-                    <>
-                      <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>{ch.rooms} phòng đồng bộ</div>
-                      <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>{ch.lastSync}</div>
-                      <div style={{display:'flex',gap:6}}>
-                        <button className="btn btn-ghost btn-sm" onClick={()=>toast(`Đang đồng bộ ${ch.name}...`,'info')}>Đồng bộ ngay</button>
-                        <button className="btn btn-ghost btn-sm" onClick={()=>toast('Mở cài đặt','info')}>Cài đặt</button>
+                <div key={ch.id} style={{
+                  background:'var(--bg-elevated)',
+                  borderRadius:'var(--radius-lg)',
+                  padding:20,
+                  border:`2px solid ${ch.enabled?'rgba(16,185,129,0.2)':'rgba(255,255,255,0.04)'}`,
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: 12
+                }}>
+                  <div>
+                    <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+                      <Globe size={22} style={{color:ch.enabled?'#6EE7B7':'var(--text-muted)'}}/>
+                      <span style={{fontWeight:700,fontSize:16}}>{ch.name}</span>
+                      <span className={`badge ${ch.enabled?'badge-confirmed':'badge-muted'}`} style={{marginLeft:'auto'}}>
+                        {ch.enabled?'Đang bật':'Đang tắt'}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+                      <div style={{display:'flex', justifyContent:'space-between', fontSize:12, color:'var(--text-muted)'}}>
+                        <span>Phân bổ phòng:</span>
+                        <span style={{fontWeight:600, color:ch.enabled?'var(--text)':'var(--text-muted)'}}>{ch.allocatedRooms} phòng</span>
                       </div>
-                    </>
-                  ):(
-                    <>
-                      <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:12}}>Chưa tích hợp kênh này</div>
-                      <button className="btn btn-primary btn-sm" onClick={()=>toast(`Mở cửa sổ kết nối ${ch.name}...`,'info')}>Kết nối</button>
-                    </>
-                  )}
+                      <div style={{display:'flex', justifyContent:'space-between', fontSize:12, color:'var(--text-muted)'}}>
+                        <span>Hoa hồng (Commission):</span>
+                        <span style={{fontWeight:600, color:ch.enabled?'var(--text)':'var(--text-muted)'}}>{ch.commission}%</span>
+                      </div>
+                      <div style={{display:'flex', justifyContent:'space-between', fontSize:12, color:'var(--text-muted)'}}>
+                        <span>Hệ số giá (Rate Mod):</span>
+                        <span style={{fontWeight:600, color:ch.enabled ? (ch.rateModifier > 1 ? '#f59e0b' : '#10b981') : 'var(--text-muted)'}}>{ch.rateModifier}x</span>
+                      </div>
+                      <div style={{display:'flex', justifyContent:'space-between', fontSize:11, color:'var(--text-muted)', marginTop: 4}}>
+                        <span>Đồng bộ cuối:</span>
+                        <span style={{fontFamily:'monospace'}}>{ch.enabled ? new Date(ch.lastSync).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'}) + ' ' + new Date(ch.lastSync).toLocaleDateString('vi-VN') : '—'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{display:'flex', gap:8, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 12}}>
+                    {ch.enabled ? (
+                      <>
+                        <button className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={async () => {
+                          toast(`Đang đồng bộ ${ch.name}...`, 'info');
+                          setTimeout(async () => {
+                            await updateChannel(ch.id, { lastSync: new Date().toISOString() });
+                            toast(`Đã đồng bộ thành công kênh ${ch.name}!`, 'success');
+                          }, 1000);
+                        }}>
+                          <RefreshCw size={12}/> Đồng bộ
+                        </button>
+                        <button className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => openConfigureChannel(ch)}>
+                          <Sliders size={12}/> Cấu hình
+                        </button>
+                        <button className="btn btn-ghost btn-sm text-danger" style={{ marginLeft: 'auto' }} onClick={async () => {
+                          await updateChannel(ch.id, { enabled: false });
+                          toast(`Đã ngắt kết nối kênh ${ch.name}`, 'warn');
+                        }}>
+                          Tắt kênh
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{fontSize:12,color:'var(--text-muted)',alignSelf:'center'}}>Kênh đang vô hiệu hóa</div>
+                        <button className="btn btn-primary btn-sm" style={{marginLeft:'auto'}} onClick={async () => {
+                          await updateChannel(ch.id, { enabled: true });
+                          toast(`Đã kết nối thành công kênh ${ch.name}!`, 'success');
+                        }}>
+                          Bật kết nối
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -399,6 +501,194 @@ export default function AdminPage() {
             </div>
           </div>
         </>
+      )}
+
+      {/* ── MESSAGING AUTOMATION ── */}
+      {activeTab === 'message' && (
+        <div style={{display:'grid', gridTemplateColumns:'1fr 380px', gap:20, alignItems:'start'}}>
+          {/* Lịch sử tin nhắn */}
+          <div className="card">
+            <div className="card-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <span className="card-title">📨 Nhật ký Tin nhắn Automation</span>
+              <span className="badge badge-info" style={{fontSize:12, padding:'2px 8px', borderRadius:4, background:'rgba(59,130,246,0.15)', color:'#3b82f6'}}>{messages?.length || 0} tin nhắn</span>
+            </div>
+            
+            <div className="table-responsive" style={{maxHeight: '620px', overflowY: 'auto'}}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Thời gian</th>
+                    <th>Khách hàng</th>
+                    <th>Đặt phòng</th>
+                    <th>Loại tin nhắn</th>
+                    <th>Kênh</th>
+                    <th>Trạng thái</th>
+                    <th style={{width: 80, textAlign:'center'}}>Xem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!messages || messages.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{textAlign:'center', color:'var(--text-muted)', padding:20}}>
+                        Chưa có lịch sử tin nhắn tự động nào được ghi nhận.
+                      </td>
+                    </tr>
+                  ) : (
+                    messages.map((msg: any) => {
+                      const typeMap: Record<string, { label: string; cls: string }> = {
+                        booking_confirm: { label: 'Xác nhận đặt phòng', cls: 'badge-info' },
+                        checkin_remind: { label: 'Nhắc check-in', cls: 'badge-warn' },
+                        checkout_thanks: { label: 'Cảm ơn check-out', cls: 'badge-success' },
+                        promo: { label: 'Email Khuyến mãi', cls: 'badge-primary' },
+                      };
+                      const statusMap: Record<string, { label: string; cls: string }> = {
+                        sent: { label: 'Đã gửi thành công', cls: 'status-vacant' },
+                        failed: { label: 'Gửi thất bại', cls: 'status-maintenance' },
+                        pending: { label: 'Đang xử lý', cls: 'status-cleaning' },
+                      };
+
+                      return (
+                        <tr key={msg.id}>
+                          <td style={{fontSize:12}}>
+                            {new Date(msg.sentAt).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}
+                            <div style={{fontSize:10, color:'var(--text-muted)'}}>{new Date(msg.sentAt).toLocaleDateString('vi-VN')}</div>
+                          </td>
+                          <td>
+                            <div style={{fontWeight:600}}>{msg.guestName}</div>
+                            <div style={{fontSize:11, color:'var(--text-muted)'}}>{msg.phone} • {msg.email}</div>
+                          </td>
+                          <td style={{fontWeight:600}}>{msg.bookingId}</td>
+                          <td>
+                            <span className={`badge ${typeMap[msg.type]?.cls || 'badge-info'}`} style={{fontSize:11}}>
+                              {typeMap[msg.type]?.label || msg.type}
+                            </span>
+                          </td>
+                          <td style={{fontSize:12, textTransform:'uppercase', fontWeight:500}}>{msg.channel}</td>
+                          <td>
+                            <span className={`room-status-badge ${statusMap[msg.status]?.cls || ''}`} style={{fontSize:11, padding:'2px 8px', borderRadius:10}}>
+                              {statusMap[msg.status]?.label || msg.status}
+                            </span>
+                          </td>
+                          <td style={{textAlign:'center'}}>
+                            <button className="btn btn-secondary btn-sm" style={{padding:'4px 8px'}} title="Xem nội dung chi tiết" onClick={() => {
+                              openModal(
+                                `Chi tiết tin nhắn #${msg.id}`,
+                                <div style={{padding: '5px 10px'}}>
+                                  <div style={{marginBottom:15, fontSize:13, color:'var(--text-muted)', display:'grid', gridTemplateColumns:'120px 1fr', gap:'8px 5px'}}>
+                                    <span>Khách hàng:</span><strong style={{color:'var(--text-bright)'}}>{msg.guestName}</strong>
+                                    <span>Mã đặt phòng:</span><strong>{msg.bookingId}</strong>
+                                    <span>Số điện thoại:</span><span>{msg.phone}</span>
+                                    <span>Email nhận:</span><span>{msg.email}</span>
+                                    <span>Thời gian gửi:</span><span>{new Date(msg.sentAt).toLocaleString('vi-VN')}</span>
+                                    <span>Kênh:</span><span style={{textTransform:'uppercase'}}>{msg.channel}</span>
+                                  </div>
+                                  <div style={{border:'1px solid var(--border-color)', borderRadius:8, padding:15, background:'rgba(255,255,255,0.03)', whiteSpace:'pre-wrap', lineHeight:1.5, color:'var(--text-bright)', fontSize:13}}>
+                                    {msg.content}
+                                  </div>
+                                </div>,
+                                [{ label: 'Đóng', onClick: closeModal }]
+                              );
+                            }}>
+                              <Eye size={13}/>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Panel gửi thử tin nhắn */}
+          <div style={{display:'flex', flexDirection:'column', gap:20}}>
+            <div className="card">
+              <div className="card-header"><span className="card-title">🧪 Giả lập gửi tin nhắn (Test Panel)</span></div>
+              <div style={{padding:'5px 0', display:'flex', flexDirection:'column', gap:15}}>
+                
+                <div className="form-group">
+                  <label className="form-label">1. Chọn đặt phòng đích</label>
+                  <select className="form-input" value={selectedBooking} onChange={(e) => {
+                    const bid = e.target.value;
+                    setSelectedBooking(bid);
+                  }}>
+                    <option value="">-- Chọn khách hàng / Đặt phòng --</option>
+                    {reservations.map(r => (
+                      <option key={r.id} value={r.id}>
+                        [{r.id}] {r.guestName} ({r.phone})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">2. Loại sự kiện / Loại tin nhắn</label>
+                  <select className="form-input" value={selectedMsgType} onChange={(e) => {
+                    const type = e.target.value as any;
+                    setSelectedMsgType(type);
+                    // Update template content preview
+                    const templates: Record<string, string> = {
+                      booking_confirm: 'Kính chào quý khách [TÊN_KHÁCH], HotelOS xác nhận đặt phòng [MÃ_ĐẶT_PHÒNG] thành công. Thời gian lưu trú: [CHECK_IN] → [CHECK_OUT]. Rất hân hạnh được phục vụ quý khách!',
+                      checkin_remind: 'Kính chào quý khách [TÊN_KHÁCH], chúc quý khách một ngày tốt lành. HotelOS xin nhắc quý khách về lịch check-in ngày mai ([CHECK_IN]). Hẹn gặp quý khách!',
+                      checkout_thanks: 'Kính chào quý khách [TÊN_KHÁCH], chân thành cảm ơn quý khách đã tin tưởng và chọn lưu trú tại HotelOS. Chúc quý khách thượng lộ bình an!',
+                      promo: 'Kính chào quý khách [TÊN_KHÁCH], HotelOS gửi tặng quý khách mã giảm giá 15% cho lần đặt phòng tiếp theo: DONGHANH15. Ưu đãi áp dụng đến cuối tháng.',
+                    };
+                    setCustomMsgTemplate(templates[type]);
+                  }}>
+                    <option value="booking_confirm">Xác nhận đặt phòng (Email + SMS)</option>
+                    <option value="checkin_remind">Nhắc nhở check-in (Email)</option>
+                    <option value="checkout_thanks">Cảm ơn sau check-out (Email)</option>
+                    <option value="promo">Email Khuyến mãi quà tặng (Email)</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:5}}>
+                    <label className="form-label" style={{margin:0}}>3. Mẫu nội dung tùy chỉnh</label>
+                    <span style={{fontSize:10, color:'var(--text-muted)'}}>Biến: [TÊN_KHÁCH], [MÃ_ĐẶT_PHÒNG]</span>
+                  </div>
+                  <textarea 
+                    className="form-input" 
+                    style={{minHeight:100, fontFamily:'inherit', fontSize:13, resize:'none'}} 
+                    value={customMsgTemplate}
+                    onChange={(e) => setCustomMsgTemplate(e.target.value)}
+                  />
+                </div>
+
+                <button 
+                  className="btn btn-primary" 
+                  disabled={!selectedBooking || sendingMsg} 
+                  style={{width:'100%', height:42, display:'flex', justifyContent:'center', alignItems:'center', gap:8}}
+                  onClick={async () => {
+                    if (!selectedBooking) {
+                      toast('Vui lòng chọn một đặt phòng trước khi giả lập gửi!', 'warn');
+                      return;
+                    }
+                    try {
+                      setSendingMsg(true);
+                      await sendManualMessage(selectedBooking, selectedMsgType, customMsgTemplate);
+                      toast('Đã giả lập gửi tin nhắn automation thành công!', 'success');
+                    } catch (e: any) {
+                      toast(`Lỗi khi gửi: ${e.message}`, 'error');
+                    } finally {
+                      setSendingMsg(false);
+                    }
+                  }}
+                >
+                  <Send size={15}/> {sendingMsg ? 'Đang gửi...' : 'Gửi thử tin nhắn ngay'}
+                </button>
+              </div>
+            </div>
+
+            <div className="card" style={{fontSize:12, lineHeight:1.5, display:'flex', flexDirection:'column', gap:8}}>
+              <div style={{fontWeight:600, color:'var(--text-bright)'}}>💡 Hướng dẫn kiểm thử:</div>
+              <div>• Chọn bất kỳ khách hàng nào đang có trong danh sách đặt phòng.</div>
+              <div>• Thay đổi mẫu tin nhắn và chèn các biến động như <code style={{color:'var(--text-bright)'}}>[TÊN_KHÁCH]</code>, <code style={{color:'var(--text-bright)'}}>[MÃ_ĐẶT_PHÒNG]</code>, <code style={{color:'var(--text-bright)'}}>[CHECK_IN]</code>, <code style={{color:'var(--text-bright)'}}>[CHECK_OUT]</code>.</div>
+              <div>• Bấm nút gửi thử. Nhật ký tin nhắn sẽ lập tức cập nhật ở bên cạnh với trạng thái <strong style={{color:'#10b981'}}>Đã gửi thành công</strong>.</div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

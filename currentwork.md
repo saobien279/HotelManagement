@@ -348,21 +348,21 @@ interface MessageLog {
 - [ ] Viết file kiểm thử `phase4b_bug_check_manifest.md`
 
 ### Phase 4C: Khách đoàn
-- [ ] Thêm `Group` interface + DB schema
-- [ ] Tạo API routes `groups/` và `groups/[id]/`
-- [ ] Thêm mutators vào `HotelContext.tsx`
-- [ ] Thay thế placeholder UI tại `frontdesk/page.tsx`
-- [ ] Viết file kiểm thử `phase4c_bug_check_manifest.md`
+- [x] Thêm `Group` interface + DB schema
+- [x] Tạo API routes `groups/` và `groups/[id]/`
+- [x] Thêm mutators vào `HotelContext.tsx`
+- [x] Thay thế placeholder UI tại `frontdesk/page.tsx`
+- [x] Viết file kiểm thử `phase4c_group_check_manifest.md`
 
 ### Phase 4D: Channel Manager
-- [ ] Thêm `Channel` interface + DB schema + seed data
-- [ ] Tạo API routes `channels/` và `channels/[id]/`
-- [ ] Tạo UI tab "Kênh phân phối" tại `admin/page.tsx`
-- [ ] Viết file kiểm thử `phase4d_bug_check_manifest.md`
+- [x] Thêm `Channel` interface + DB schema + seed data
+- [x] Tạo API routes `channels/` và `channels/[id]/`
+- [x] Tạo UI tab "Kênh phân phối" tại `admin/page.tsx`
+- [x] Viết file kiểm thử `phase4d_bug_check_manifest.md`
 
 ### Phase 4E: Email/SMS Automation
-- [ ] Thêm `MessageLog` interface + DB schema
-- [ ] Tạo `lib/messaging.ts` (template engine)
-- [ ] Hook vào API reservation PATCH
-- [ ] Tạo UI tab "Tin nhắn" tại `admin/page.tsx`
-- [ ] Viết file kiểm thử `phase4e_bug_check_manifest.md`
+- [x] Thêm `MessageLog` interface + DB schema
+- [x] Tạo `lib/messaging.ts` (template engine)
+- [x] Hook vào API reservation PATCH
+- [x] Tạo UI tab "Tin nhắn" tại `admin/page.tsx`
+- [x] Viết file kiểm thử `phase4e_bug_check_manifest.md`

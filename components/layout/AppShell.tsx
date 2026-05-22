@@ -5,12 +5,22 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useHotel } from '@/context/HotelContext';
 import { useNotification } from '@/context/NotificationContext';
+import { useSession, signOut } from 'next-auth/react';
 import {
   LayoutDashboard, Calendar, BellRing, Sparkles,
   ShoppingCart, TrendingUp, Settings, Building,
   ChevronLeft, ChevronRight, Bell, Search,
-  MoreHorizontal, Menu, X, CalendarX, AlertTriangle, CheckCircle2
+  MoreHorizontal, Menu, X, CalendarX, AlertTriangle, CheckCircle2,
+  LogOut
 } from 'lucide-react';
+
+const roleLabels: Record<string, string> = {
+  admin: 'Quản trị viên',
+  frontdesk: 'Lễ tân',
+  housekeeping: 'Buồng phòng',
+  accountant: 'Kế toán',
+  inventory: 'Nhân viên kho'
+};
 
 const pageTitles: Record<string, string> = {
   '/':             'Dashboard',
@@ -30,6 +40,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const { notifications, unreadCount, markAsRead, markAllAsRead, isDropdownOpen, setDropdownOpen } = useNotification();
   const [isSearchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { data: session } = useSession();
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return { rooms: [], reservations: [] };
@@ -72,54 +84,87 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const checkOutToday = stats?.checkOutToday ?? 0;
   const lowStock      = stats?.lowStockItems ?? 0;
 
-  const navGroups = [
-    {
-      label: 'Tổng quan',
-      items: [
-        { id: 'dashboard', href: '/', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
-      ],
-    },
-    {
-      label: 'Vận hành',
-      items: [
-        {
-          id: 'reservation',  href: '/reservation',  label: 'Đặt phòng',
-          icon: <Calendar size={18} />,
-          badge: pendingBookings > 0 ? String(pendingBookings) : undefined,
-        },
-        {
-          id: 'frontdesk',    href: '/frontdesk',    label: 'Tiền sảnh',
-          icon: <BellRing size={18} />,
-          badge: (checkInToday + checkOutToday) > 0 ? String(checkInToday + checkOutToday) : undefined,
-          badgeClass: 'accent',
-        },
-        {
-          id: 'housekeeping', href: '/housekeeping',  label: 'Buồng phòng',
-          icon: <Sparkles size={18} />,
-          badge: cleaningRooms > 0 ? String(cleaningRooms) : undefined,
-          badgeClass: 'warn',
-        },
-      ],
-    },
-    {
-      label: 'Kinh doanh',
-      items: [
-        {
-          id: 'pos',     href: '/pos',     label: 'Dịch vụ & Kho',
-          icon: <ShoppingCart size={18} />,
-          badge: lowStock > 0 ? String(lowStock) : undefined,
-          badgeClass: 'warn',
-        },
-        { id: 'reports', href: '/reports', label: 'Báo cáo',      icon: <TrendingUp size={18} /> },
-      ],
-    },
-    {
-      label: 'Hệ thống',
-      items: [
-        { id: 'admin', href: '/admin', label: 'Quản trị', icon: <Settings size={18} /> },
-      ],
-    },
-  ];
+  const userRole = (session?.user as any)?.role || 'frontdesk';
+
+  const filteredNavGroups = useMemo(() => {
+    const rawGroups = [
+      {
+        label: 'Tổng quan',
+        items: [
+          { id: 'dashboard', href: '/', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+        ],
+      },
+      {
+        label: 'Vận hành',
+        items: [
+          {
+            id: 'reservation',  href: '/reservation',  label: 'Đặt phòng',
+            icon: <Calendar size={18} />,
+            badge: pendingBookings > 0 ? String(pendingBookings) : undefined,
+            allowedRoles: ['admin', 'frontdesk']
+          },
+          {
+            id: 'frontdesk',    href: '/frontdesk',    label: 'Tiền sảnh',
+            icon: <BellRing size={18} />,
+            badge: (checkInToday + checkOutToday) > 0 ? String(checkInToday + checkOutToday) : undefined,
+            badgeClass: 'accent',
+            allowedRoles: ['admin', 'frontdesk']
+          },
+          {
+            id: 'housekeeping', href: '/housekeeping',  label: 'Buồng phòng',
+            icon: <Sparkles size={18} />,
+            badge: cleaningRooms > 0 ? String(cleaningRooms) : undefined,
+            badgeClass: 'warn',
+            allowedRoles: ['admin', 'housekeeping']
+          },
+        ],
+      },
+      {
+        label: 'Kinh doanh',
+        items: [
+          {
+            id: 'pos',     href: '/pos',     label: 'Dịch vụ & Kho',
+            icon: <ShoppingCart size={18} />,
+            badge: lowStock > 0 ? String(lowStock) : undefined,
+            badgeClass: 'warn',
+            allowedRoles: ['admin', 'frontdesk', 'inventory']
+          },
+          { 
+            id: 'reports', 
+            href: '/reports', 
+            label: 'Báo cáo',      
+            icon: <TrendingUp size={18} />,
+            allowedRoles: ['admin', 'accountant']
+          },
+        ],
+      },
+      {
+        label: 'Hệ thống',
+        items: [
+          { 
+            id: 'admin', 
+            href: '/admin', 
+            label: 'Quản trị', 
+            icon: <Settings size={18} />,
+            allowedRoles: ['admin']
+          },
+        ],
+      },
+    ];
+
+    return rawGroups.map(group => {
+      const items = group.items.filter(item => {
+        const allowed = (item as any).allowedRoles;
+        if (!allowed) return true;
+        return allowed.includes(userRole);
+      });
+      return { ...group, items };
+    }).filter(group => group.items.length > 0);
+  }, [userRole, pendingBookings, checkInToday, checkOutToday, cleaningRooms, lowStock]);
+
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
 
   return (
     <div className="app-shell">
@@ -143,7 +188,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
         {/* Nav */}
         <nav className="nav-menu">
-          {navGroups.map(group => (
+          {filteredNavGroups.map(group => (
             <div className="nav-group" key={group.label}>
               <span className="nav-group-label">{group.label}</span>
               {group.items.map(item => {
@@ -158,9 +203,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
                   >
                     <span className="nav-icon">{item.icon}</span>
                     <span className="nav-text">{item.label}</span>
-                    {item.badge && (
-                      <span className={`nav-badge${item.badgeClass ? ' ' + item.badgeClass : ''}`}>
-                        {item.badge}
+                    {(item as any).badge && (
+                      <span className={`nav-badge${(item as any).badgeClass ? ' ' + (item as any).badgeClass : ''}`}>
+                        {(item as any).badge}
                       </span>
                     )}
                   </Link>
@@ -193,17 +238,59 @@ export default function AppShell({ children }: { children: ReactNode }) {
         )}
 
         {/* Footer */}
-        <div className="sidebar-footer">
-          <div className="user-card">
-            <div className="user-avatar">A</div>
-            <div className="user-info">
-              <span className="user-name">Admin</span>
-              <span className="user-role">Quản trị viên</span>
+        <div className="sidebar-footer" style={{ position: 'relative' }}>
+          <div className="user-card" onClick={() => setUserDropdownOpen(!userDropdownOpen)} style={{ cursor: 'pointer' }}>
+            <div className="user-avatar" style={{ background: 'var(--accent-1)', color: 'white', fontWeight: 800 }}>
+              {session?.user?.name?.charAt(0) || 'A'}
             </div>
-            <button className="user-menu-btn" title="Tài khoản">
+            <div className="user-info">
+              <span className="user-name">{session?.user?.name || 'Đang tải...'}</span>
+              <span className="user-role">{roleLabels[(session?.user as any)?.role || 'frontdesk'] || 'Lễ tân'}</span>
+            </div>
+            <button className="user-menu-btn" title="Tài khoản" onClick={(e) => { e.stopPropagation(); setUserDropdownOpen(!userDropdownOpen); }}>
               <MoreHorizontal size={16} />
             </button>
           </div>
+
+          {userDropdownOpen && (
+            <div style={{
+              position: 'absolute',
+              bottom: 'calc(100% + 8px)',
+              left: 12,
+              right: 12,
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg)',
+              boxShadow: 'var(--shadow-xl)',
+              zIndex: 101,
+              overflow: 'hidden',
+              padding: 6,
+              animation: 'modalIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+            }}>
+              <button 
+                onClick={() => signOut({ callbackUrl: '/login' })}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '10px 12px',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--color-danger)',
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  borderRadius: 'var(--radius-md)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'var(--transition)'
+                }}
+                className="user-logout-btn"
+              >
+                <LogOut size={15} /> Đăng xuất
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 

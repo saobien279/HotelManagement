@@ -6,10 +6,10 @@
 import { createClient } from 'redis';
 import {
   initialRoomTypes, initialRooms, initialReservations, initialServices,
-  initialInventory, initialUsers, activityLog,
+  initialInventory, initialUsers, activityLog, initialChannels, initialMessages,
 } from '@/lib/data';
 import type {
-  RoomType, Room, Reservation, Service, InventoryItem, User, ActivityLog,
+  RoomType, Room, Reservation, Service, InventoryItem, User, ActivityLog, Group, Channel, MessageLog,
 } from '@/lib/types';
 
 /* ─── In-memory fallback (for local dev without Redis) ── */
@@ -50,6 +50,9 @@ export interface DB {
   inventory:    InventoryItem[];
   users:        User[];
   activityLog:  ActivityLog[];
+  groups:       Group[];
+  channels:     Channel[];
+  messages:     MessageLog[];
   _version:     number;
   _seeded:      boolean;
 }
@@ -66,7 +69,13 @@ export async function readDB(): Promise<DB> {
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<DB>;
       const seed = await getSeedData();
-      return { ...seed, ...parsed } as DB;
+      return { 
+        ...seed, 
+        ...parsed,
+        groups: parsed.groups || [],
+        channels: parsed.channels || seed.channels,
+        messages: parsed.messages || seed.messages
+      } as DB;
     }
     return await seedDB();
   } catch (err) {
@@ -100,6 +109,9 @@ async function getSeedData(): Promise<DB> {
     inventory:    initialInventory,
     users:        initialUsers,
     activityLog:  activityLog,
+    groups:       [],
+    channels:     initialChannels,
+    messages:     initialMessages,
     _version:     1,
     _seeded:      true,
   };
@@ -122,6 +134,7 @@ export const newId = {
   service:     () => 'SV' + String(Date.now()).slice(-6),
   user:        () => 'U'  + String(Date.now()).slice(-6),
   log:         () => 'L'  + String(Date.now()).slice(-6),
+  message:     () => 'MSG' + String(Date.now()).slice(-6),
 };
 
 /* ─── Log helper ────────────────────────────── */

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { readDB, writeDB, appendLog } from '@/lib/db';
+import { sendAutomationMessage } from '@/lib/messaging';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -45,6 +46,9 @@ export async function PATCH(req: Request, { params }: Params) {
         });
 
         appendLog(db, 'Lễ tân', `Check-out ${updated.guestName} – Phòng ${targetRoomId}`, 'invoice');
+
+        // Trigger checkout thanks email
+        sendAutomationMessage(db, updated, 'checkout_thanks');
       }
       else if (body.status === 'cancelled')  {
         db.rooms[roomIdx].status = 'vacant';

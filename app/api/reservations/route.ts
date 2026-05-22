@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readDB, writeDB, newId, appendLog } from '@/lib/db';
 import type { Reservation } from '@/lib/types';
+import { sendAutomationMessage } from '@/lib/messaging';
 
 // ── GET /api/reservations ────────────────────
 export async function GET(req: Request) {
@@ -49,6 +50,9 @@ export async function POST(req: Request) {
   }
 
   appendLog(db, 'Hệ thống', `Tạo đặt phòng mới ${reservation.id} – ${reservation.guestName}`, 'booking');
+
+  // Trigger booking confirmation email/SMS
+  sendAutomationMessage(db, reservation, 'booking_confirm');
 
   await writeDB(db);
   return NextResponse.json({ data: reservation }, { status: 201 });

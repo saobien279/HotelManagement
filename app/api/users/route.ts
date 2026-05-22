@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readDB, writeDB, newId, appendLog } from '@/lib/db';
 import type { User } from '@/lib/types';
+import crypto from 'crypto';
 
 // ── GET /api/users ───────────────────────────
 export async function GET() {
@@ -19,7 +20,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Username already exists' }, { status: 409 });
   }
 
-  const user: User = { id: newId.user(), ...body, lastLogin: body.lastLogin ?? '—' };
+  const rawPass = body.password || 'hotel123';
+  const hashedPassword = crypto.createHash('sha256').update(rawPass).digest('hex');
+
+  const user: User = { 
+    id: newId.user(), 
+    ...body, 
+    password: hashedPassword,
+    lastLogin: body.lastLogin ?? '—' 
+  };
   db.users.push(user);
 
   appendLog(db, 'Admin', `Tạo tài khoản ${user.name} (${user.role})`, 'config');

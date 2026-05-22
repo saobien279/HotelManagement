@@ -20,11 +20,327 @@ function Avatar({ name, color }: { name: string; color: string }) {
   );
 }
 
+// ── CreateGroupForm Subcomponent ──────────────
+function CreateGroupForm({ rooms, reservations, roomTypes, onSave, onCancel }: {
+  rooms: any[];
+  reservations: any[];
+  roomTypes: any[];
+  onSave: (data: any) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [contact, setContact] = useState('');
+  const [phone, setPhone] = useState('');
+  const [checkIn, setCheckIn] = useState(TODAY);
+  const [checkOut, setCheckOut] = useState(() => {
+    const tomorrow = new Date(new Date(TODAY).getTime() + 86400000);
+    return tomorrow.toISOString().slice(0, 10);
+  });
+  const [totalGuests, setTotalGuests] = useState(5);
+  const [roomType, setRoomType] = useState(roomTypes[0]?.id || 'SGL');
+  const [roomCount, setRoomCount] = useState(2);
+  const [note, setNote] = useState('');
+  
+  // Available rooms calculation
+  const getAvailableRooms = () => {
+    if (!checkIn || !checkOut) return [];
+    const roomsOfType = rooms.filter(rm => rm.type === roomType);
+    return roomsOfType.filter(rm => {
+      const hasOverlap = reservations.some(r => 
+        r.roomId === rm.id && 
+        r.status !== 'cancelled' && 
+        r.status !== 'checkedout' &&
+        !(checkOut <= r.checkIn || checkIn >= r.checkOut)
+      );
+      return !hasOverlap;
+    });
+  };
+
+  const available = getAvailableRooms();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !contact || !phone || !checkIn || !checkOut) {
+      alert('Vui lòng điền đầy đủ các trường bắt buộc');
+      return;
+    }
+    if (available.length < roomCount) {
+      alert(`Không đủ phòng trống thuộc loại này (Chỉ còn ${available.length} phòng)`);
+      return;
+    }
+    await onSave({
+      name, contact, phone, checkIn, checkOut, totalGuests, roomType, roomCount, note
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Tên đoàn / Công ty <span style={{color:'var(--color-danger)'}}>*</span></label>
+          <input type="text" className="form-input" value={name} onChange={e => setName(e.target.value)} placeholder="Đoàn du lịch XYZ" required />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Người liên hệ <span style={{color:'var(--color-danger)'}}>*</span></label>
+          <input type="text" className="form-input" value={contact} onChange={e => setContact(e.target.value)} placeholder="Nguyễn Văn A" required />
+        </div>
+      </div>
+      
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Số điện thoại <span style={{color:'var(--color-danger)'}}>*</span></label>
+          <input type="tel" className="form-input" value={phone} onChange={e => setPhone(e.target.value)} placeholder="09xxxxxxxx" required />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Số lượng khách</label>
+          <input type="number" className="form-input" value={totalGuests} onChange={e => setTotalGuests(Number(e.target.value))} min={1} required />
+        </div>
+      </div>
+
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Ngày Check-in <span style={{color:'var(--color-danger)'}}>*</span></label>
+          <input type="date" className="form-input" value={checkIn} onChange={e => setCheckIn(e.target.value)} required />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Ngày Check-out <span style={{color:'var(--color-danger)'}}>*</span></label>
+          <input type="date" className="form-input" value={checkOut} onChange={e => setCheckOut(e.target.value)} required />
+        </div>
+      </div>
+
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Loại phòng</label>
+          <select className="form-select" value={roomType} onChange={e => setRoomType(e.target.value)}>
+            {roomTypes.map(t => (
+              <option key={t.id} value={t.id}>{t.name} ({t.id}) – {fmtShort(t.basePrice)}/đêm</option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group">
+          <label className="form-label">Số phòng đăng ký</label>
+          <input type="number" className="form-input" value={roomCount} onChange={e => setRoomCount(Number(e.target.value))} min={1} max={available.length || 1} required />
+          <div style={{ fontSize:11, color: available.length >= roomCount ? 'var(--color-success)' : 'var(--color-danger)', marginTop:4 }}>
+            {available.length > 0 ? `Còn ${available.length} phòng trống loại này` : 'Hết phòng trống loại này'}
+          </div>
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label className="form-label">Ghi chú</label>
+        <textarea className="form-textarea" value={note} onChange={e => setNote(e.target.value)} style={{ minHeight: 60 }} placeholder="Ghi chú thêm..."></textarea>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+        <button type="submit" className="btn btn-primary" disabled={available.length < roomCount}>✓ Lưu & Tạo đoàn</button>
+        <button type="button" className="btn btn-ghost" onClick={onCancel}>Hủy</button>
+      </div>
+    </form>
+  );
+}
+
+// ── GroupInvoiceModalContent Subcomponent ──────
+function GroupInvoiceModalContent({ group, reservations, services }: { group: any; reservations: any[]; services: any[] }) {
+  const groupRes = reservations.filter(r => group.reservationIds.includes(r.id));
+  
+  let totalNights = 0;
+  let totalRoomBill = 0;
+  let totalServiceBill = 0;
+
+  const itemizedRooms = groupRes.map(r => {
+    const nights = calcNights(r.checkIn, r.checkOut);
+    totalNights += nights;
+    totalRoomBill += r.total;
+
+    const roomSvcs = services.filter(s => s.bookingId === r.id);
+    const roomSvcTotal = roomSvcs.reduce((sum, s) => sum + s.price * s.qty, 0);
+    totalServiceBill += roomSvcTotal;
+
+    return {
+      reservation: r,
+      nights,
+      services: roomSvcs,
+      roomSvcTotal,
+      subtotal: r.total + roomSvcTotal
+    };
+  });
+
+  const grandTotal = totalRoomBill + totalServiceBill;
+
+  return (
+    <div className="invoice-print-container">
+      <div style={{ textAlign:'center', marginBottom:16, paddingBottom:14, borderBottom:'2px dashed var(--border)' }}>
+        <div style={{ fontWeight:900, fontSize:20, letterSpacing:-0.5 }}>🏨 HOTEL OS</div>
+        <div style={{ fontSize:12, color:'var(--text-muted)', marginTop:2 }}>HÓA ĐƠN GỘP KHÁCH ĐOÀN</div>
+        <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:4 }}>Mã đoàn: {group.id} · Tên đoàn: {group.name}</div>
+        <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:2 }}>Ngày in: {fmtDate(TODAY)} {new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}</div>
+      </div>
+
+      <div style={{ marginBottom:14, display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, fontSize:12 }}>
+        <div>
+          <strong>Người liên hệ:</strong> {group.contact} <br />
+          <strong>Số điện thoại:</strong> {group.phone}
+        </div>
+        <div style={{ textAlign:'right' }}>
+          <strong>Thời gian:</strong> {fmtDate(group.checkIn)} → {fmtDate(group.checkOut)} <br />
+          <strong>Tổng số khách:</strong> {group.totalGuests} người
+        </div>
+      </div>
+
+      <div style={{ border:'1px solid var(--border)', borderRadius:'var(--radius-md)', overflow:'hidden', marginBottom:14 }}>
+        <table className="table striped" style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+          <thead>
+            <tr style={{ background:'var(--bg-elevated)', borderBottom:'1px solid var(--border)' }}>
+              <th style={{ padding:8, textAlign:'left' }}>Phòng</th>
+              <th style={{ padding:8, textAlign:'left' }}>Khách hàng</th>
+              <th style={{ padding:8, textAlign:'right' }}>Tiền phòng</th>
+              <th style={{ padding:8, textAlign:'right' }}>Tiền dịch vụ</th>
+              <th style={{ padding:8, textAlign:'right' }}>Cộng</th>
+            </tr>
+          </thead>
+          <tbody>
+            {itemizedRooms.map(item => (
+              <tr key={item.reservation.id} style={{ borderBottom:'1px solid var(--border)' }}>
+                <td style={{ padding:8 }}><strong>P.{item.reservation.roomId}</strong><br/><span style={{fontSize:9, color:'var(--text-muted)'}}>{roomTypeLabel[item.reservation.roomType]} ({item.nights} đêm)</span></td>
+                <td style={{ padding:8 }}>{item.reservation.guestName}</td>
+                <td style={{ padding:8, textAlign:'right', fontVariantNumeric:'tabular-nums' }}>{fmtShort(item.reservation.total)}</td>
+                <td style={{ padding:8, textAlign:'right', fontVariantNumeric:'tabular-nums' }}>
+                  {item.roomSvcTotal > 0 ? (
+                    <div>
+                      {fmtShort(item.roomSvcTotal)}
+                      <div style={{ fontSize:8, color:'var(--color-info)' }}>
+                        {item.services.map(s => `${s.name}(${s.qty})`).join(', ')}
+                      </div>
+                    </div>
+                  ) : '—'}
+                </td>
+                <td style={{ padding:8, textAlign:'right', fontWeight:700, fontVariantNumeric:'tabular-nums' }}>{fmtShort(item.subtotal)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ padding:10, background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', border:'1px solid var(--border)' }}>
+        <div className="info-row" style={{ fontSize:12, marginBottom:4 }}><span className="info-key">Tổng cộng tiền phòng:</span><span className="info-value">{fmtShort(totalRoomBill)}</span></div>
+        <div className="info-row" style={{ fontSize:12, marginBottom:4 }}><span className="info-key">Tổng cộng tiền dịch vụ:</span><span className="info-value">{fmtShort(totalServiceBill)}</span></div>
+        <hr className="divider" style={{ margin:'6px 0' }}/>
+        <div className="info-row" style={{ fontSize:14 }}>
+          <span className="info-key" style={{ fontWeight:800 }}>TỔNG THANH TOÁN ĐOÀN</span>
+          <span className="info-value strong" style={{ fontVariantNumeric:'tabular-nums', color:'var(--accent-1)', fontSize:18 }}>{fmtShort(grandTotal)}</span>
+        </div>
+      </div>
+
+      <div style={{ marginTop:14, fontSize:10, color:'var(--text-muted)', textAlign:'center', fontStyle:'italic' }}>
+        Cảm ơn quý khách đã tin tưởng và chọn dịch vụ của chúng tôi!
+      </div>
+    </div>
+  );
+}
+
 export default function FrontDeskPage() {
   const [activeTab, setActiveTab] = useState<'checkin'|'checkout'|'staying'|'groups'>('checkin');
-  const { rooms, reservations, services, updateReservationStatus, addReservation, roomTypes, loading } = useHotel();
+  const { rooms, reservations, services, updateReservationStatus, addReservation, roomTypes, loading, groups, addGroup, updateGroupStatus, deleteGroup } = useHotel();
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
+
+  // ── Group Actions Handlers ──────────────────
+  const handleGroupCheckIn = (group: any) => {
+    const groupReservations = reservations.filter(r => group.reservationIds.includes(r.id));
+    const unassigned = groupReservations.filter(r => !r.roomId);
+    if (unassigned.length > 0) {
+      toast(`Không thể check-in: Còn ${unassigned.length} phòng chưa được gán phòng thực tế!`, 'warn');
+      return;
+    }
+
+    openModal('Xác nhận Check-in cả đoàn', (
+      <div>
+        <p>Bạn có chắc chắn muốn thực hiện nhận phòng (Check-in) cho toàn bộ đoàn <strong>{group.name}</strong>?</p>
+        <p style={{ fontSize:12, color:'var(--text-muted)' }}>Mọi phòng trong đoàn sẽ chuyển sang trạng thái "Đang có khách".</p>
+      </div>
+    ), [
+      { label: '✓ Xác nhận', cls: 'btn-primary', onClick: async () => {
+        try {
+          await updateGroupStatus(group.id, 'checkedin');
+          closeModal();
+          toast(`✅ Đã check-in thành công cho đoàn ${group.name}!`, 'success');
+        } catch (e: any) {
+          toast(e.message || 'Lỗi hệ thống', 'error');
+        }
+      }},
+      { label: 'Hủy', cls: 'btn-ghost', onClick: closeModal }
+    ]);
+  };
+
+  const handleGroupCheckOut = (group: any, grandTotal: number) => {
+    openModal('Xác nhận Check-out cả đoàn', (
+      <div>
+        <p>Xác nhận thanh toán và Check-out cho đoàn <strong>{group.name}</strong>?</p>
+        <p style={{ fontSize:13 }}>Tổng tiền thanh toán gộp: <strong style={{ color:'var(--accent-1)', fontSize: 16 }}>{fmtShort(grandTotal)}</strong></p>
+        <p style={{ fontSize:12, color:'var(--text-muted)', marginTop:6 }}>Tất cả các phòng liên quan sẽ được giải phóng và chuyển sang trạng thái dọn dẹp.</p>
+      </div>
+    ), [
+      { label: '💳 Hoàn tất & Thanh toán', cls: 'btn-primary', onClick: async () => {
+        try {
+          await updateGroupStatus(group.id, 'checkedout');
+          closeModal();
+          toast(`✅ Đã check-out và thanh toán thành công đoàn ${group.name}!`, 'success');
+        } catch (e: any) {
+          toast(e.message || 'Lỗi hệ thống', 'error');
+        }
+      }},
+      { label: 'Hủy', cls: 'btn-ghost', onClick: closeModal }
+    ]);
+  };
+
+  const handleCancelGroup = (id: string) => {
+    openModal('Hủy đặt phòng đoàn', (
+      <div style={{ color: 'var(--color-danger)' }}>
+        <strong>Cảnh báo:</strong> Bạn có chắc chắn muốn hủy đặt phòng cho toàn bộ đoàn này? 
+        Hành động này sẽ hủy tất cả các đặt phòng liên kết và giải phóng toàn bộ phòng đã giữ.
+      </div>
+    ), [
+      { label: '❌ Xác nhận hủy', cls: 'btn-danger', onClick: async () => {
+        try {
+          await deleteGroup(id);
+          closeModal();
+          toast('✅ Đã hủy đoàn thành công!', 'success');
+        } catch (e: any) {
+          toast(e.message || 'Lỗi hệ thống', 'error');
+        }
+      }},
+      { label: 'Đóng', cls: 'btn-ghost', onClick: closeModal }
+    ]);
+  };
+
+  const openGroupInvoiceModal = (group: any) => {
+    openModal(`Hóa đơn gộp đoàn – ${group.id}`, (
+      <GroupInvoiceModalContent group={group} reservations={reservations} services={services} />
+    ), [
+      { label: '🖨️ In hóa đơn', cls: 'btn-primary', onClick: () => { window.print(); closeModal(); } },
+      { label: 'Đóng', cls: 'btn-ghost', onClick: closeModal }
+    ]);
+  };
+
+  const openCreateGroupModal = () => {
+    openModal('Tạo đặt phòng đoàn mới', (
+      <CreateGroupForm 
+        rooms={rooms} 
+        reservations={reservations} 
+        roomTypes={roomTypes} 
+        onSave={async (data) => {
+          try {
+            await addGroup(data);
+            closeModal();
+            toast(`✅ Đặt phòng đoàn ${data.name} đã được tạo thành công!`, 'success');
+          } catch (e: any) {
+            toast(e.message || 'Lỗi hệ thống', 'error');
+          }
+        }} 
+        onCancel={closeModal} 
+      />
+    ));
+  };
 
   const checkInPending  = reservations.filter(r => (r.status==='confirmed'||r.status==='deposit') && r.checkIn <= TODAY);
   const checkOutPending = reservations.filter(r => r.status==='checkedin' && r.checkOut <= TODAY);
@@ -517,33 +833,114 @@ export default function FrontDeskPage() {
       {/* ── GROUPS TAB ── */}
       {activeTab === 'groups' && (
         <div className="card">
-          <div className="card-header">
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span className="card-title">Quản lý khách đoàn</span>
-            <button className="btn btn-primary btn-sm" onClick={() => toast('Tính năng đang phát triển trong phiên bản tiếp theo', 'info')}>
+            <button className="btn btn-primary btn-sm" onClick={openCreateGroupModal}>
               <Plus size={14}/> Tạo đoàn mới
             </button>
           </div>
-          <div style={{ background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', padding:20, border:'1px solid var(--border)', marginBottom:14 }}>
-            <div style={{ fontWeight:700, fontSize:14, marginBottom:4 }}>TOUR-001 · Công ty Du lịch XYZ</div>
-            <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:14 }}>8 phòng · Check-in: 14/03/2026 · Check-out: 17/03/2026 · 28 khách</div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(70px,1fr))', gap:8, marginBottom:16 }}>
-              {['101','102','201','202','301','302','303','304'].map((r, i) => (
-                <div key={r} style={{ background:'var(--bg-card)', borderRadius:'var(--radius-md)', padding:10, textAlign:'center', border:'1px solid var(--border)' }}>
-                  <div style={{ fontWeight:700 }}>P.{r}</div>
-                  <div style={{ fontSize:10, color:'var(--text-muted)' }}>Khách {i*4+1}–{i*4+4}</div>
-                </div>
-              ))}
+          
+          {!groups || groups.length === 0 ? (
+            <div className="empty-state" style={{ padding: 40 }}>
+              <div className="empty-icon"><Users size={40}/></div>
+              <h3>Không có đoàn khách nào</h3>
+              <p>Hệ thống chưa ghi nhận đoàn khách nào được đặt phòng</p>
             </div>
-            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-              <button className="btn btn-success btn-sm" onClick={() => toast('Check-in cả đoàn thành công!', 'success')}>✓ Check-in cả đoàn</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => toast('Đang gộp hóa đơn...', 'info')}>Gộp hóa đơn</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => toast('Đang chia hóa đơn...', 'info')}>Chia hóa đơn</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => toast('Đang xuất danh sách khách...', 'info')}>Xuất DS khách</button>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:14, padding: 16 }}>
+              {groups.map(group => {
+                const groupRes = reservations.filter(r => group.reservationIds.includes(r.id));
+                const roomsCount = groupRes.length;
+                const statusBadge = (s: string) => {
+                  const map: Record<string, string> = {
+                    confirmed: 'badge-confirmed',
+                    pending: 'badge-pending',
+                    checkedin: 'badge-checkedin',
+                    checkedout: 'badge-checkedout',
+                    cancelled: 'badge-cancelled',
+                  };
+                  return map[s] ?? 'badge-muted';
+                };
+                const statusLabelLocal: Record<string, string> = {
+                  confirmed: 'Đã xác nhận',
+                  pending: 'Chờ xác nhận',
+                  checkedin: 'Đang ở',
+                  checkedout: 'Đã trả phòng',
+                  cancelled: 'Đã hủy',
+                };
+                
+                // Group totals
+                const totalRoomBill = groupRes.reduce((s, r) => s + r.total, 0);
+                const groupSvcs = services.filter(s => groupRes.some(r => r.id === s.bookingId));
+                const totalSvcBill = groupSvcs.reduce((s, x) => s + x.price * x.qty, 0);
+                const grandTotal = totalRoomBill + totalSvcBill;
+
+                return (
+                  <div key={group.id} style={{ background:'var(--bg-elevated)', borderRadius:'var(--radius-md)', padding:20, border:'1px solid var(--border)', marginBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                      <div>
+                        <div style={{ fontWeight:800, fontSize:15, color:'var(--accent-1)' }}>
+                          {group.name} ({group.id})
+                        </div>
+                        <div style={{ fontSize:12, color:'var(--text-muted)', display:'flex', gap:12, marginTop:4, flexWrap:'wrap' }}>
+                          <span>👤 Liên hệ: <strong>{group.contact}</strong></span>
+                          <span>📱 SĐT: <strong>{group.phone}</strong></span>
+                          <span>📅 {fmtDate(group.checkIn)} → {fmtDate(group.checkOut)}</span>
+                          <span>👥 {group.totalGuests} khách ({roomsCount} phòng)</span>
+                        </div>
+                      </div>
+                      <span className={`badge ${statusBadge(group.status)}`}>{statusLabelLocal[group.status] || group.status}</span>
+                    </div>
+
+                    {/* Room grid */}
+                    {groupRes.length > 0 && (
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(90px,1fr))', gap:8, margin:'14px 0' }}>
+                        {groupRes.map(res => (
+                          <div key={res.id} style={{ background:'var(--bg-card)', borderRadius:'var(--radius-md)', padding:10, textAlign:'center', border:'1px solid var(--border)' }}>
+                            <div style={{ fontWeight:700, fontSize:13 }}>P.{res.roomId || 'Chưa gán'}</div>
+                            <div style={{ fontSize:9, color:'var(--text-muted)', marginTop:2 }}>{roomTypeLabel[res.roomType]}</div>
+                            <div style={{ fontSize:9, fontWeight:600, color: res.status === 'checkedin' ? 'var(--color-success)' : res.status === 'checkedout' ? 'var(--text-muted)' : 'var(--color-warning)', marginTop:3 }}>
+                              {statusLabel[res.status]}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: 12 }}>
+                      {group.note && <span>📝 Ghi chú: {group.note}</span>}
+                    </div>
+
+                    <div style={{ display:'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: 12, flexWrap: 'wrap', gap: 10 }}>
+                      <div style={{ fontSize: 13 }}>
+                        Tổng chi phí: <strong style={{ color:'var(--accent-1)', fontSize: 15 }}>{fmtShort(grandTotal)}</strong>
+                        {totalSvcBill > 0 && <span style={{ fontSize: 10, color: 'var(--color-info)', marginLeft: 6 }}>(Dịch vụ: {fmtShort(totalSvcBill)})</span>}
+                      </div>
+
+                      <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                        {/* Action buttons based on status */}
+                        {group.status === 'confirmed' && (
+                          <>
+                            <button className="btn btn-success btn-sm" onClick={() => handleGroupCheckIn(group)}>✓ Check-in cả đoàn</button>
+                            <button className="btn btn-danger btn-sm" onClick={() => handleCancelGroup(group.id)}>❌ Hủy đoàn</button>
+                          </>
+                        )}
+                        {group.status === 'checkedin' && (
+                          <>
+                            <button className="btn btn-primary btn-sm" onClick={() => handleGroupCheckOut(group, grandTotal)}>💳 Check-out cả đoàn</button>
+                            <button className="btn btn-ghost btn-sm" onClick={() => openGroupInvoiceModal(group)}>🧾 Gộp hóa đơn</button>
+                          </>
+                        )}
+                        {group.status === 'checkedout' && (
+                          <button className="btn btn-ghost btn-sm" onClick={() => openGroupInvoiceModal(group)}>🧾 Xem hóa đơn gộp</button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
-          <div className="alert alert-info" style={{ fontSize:12 }}>
-            <strong>💡 Tính năng khách đoàn đầy đủ</strong> bao gồm: quản lý danh sách khách, phân phòng tự động, gộp/chia hóa đơn, và báo cáo đoàn — sẽ ra mắt trong phiên bản v2.0.
-          </div>
+          )}
         </div>
       )}
 

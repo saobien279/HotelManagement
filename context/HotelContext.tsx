@@ -4,13 +4,14 @@ import React, {
   createContext, useContext, useState, useCallback,
   useEffect, ReactNode,
 } from 'react';
+import { useSession } from 'next-auth/react';
 import {
   guests, activityLog as staticLog,
   revenueMonthly, revenueBySource,
 } from '@/lib/data';
 import type {
   RoomType, Room, Reservation, Service, User, InventoryItem,
-  RoomStatus, ReservationStatus, ActivityLog,
+  RoomStatus, ReservationStatus, ActivityLog, Group, Channel, MessageLog,
 } from '@/lib/types';
 
 /* ─── Re-export static / analytics data ──────── */
@@ -50,6 +51,9 @@ interface HotelContextValue {
   users: User[];
   inventory: InventoryItem[];
   activityLog: ActivityLog[];
+  groups: Group[];
+  channels: Channel[];
+  messages: MessageLog[];
   stats: HotelStats | null;
   loading: boolean;
   // Mutators – all async, call API → refresh state
@@ -62,6 +66,11 @@ interface HotelContextValue {
   updateUser: (id: string, data: Partial<User>) => Promise<void>;
   adjustInventory: (id: string, adjustment: number) => Promise<void>;
   updateRoomType: (id: string, data: Partial<RoomType>) => Promise<void>;
+  addGroup: (data: any) => Promise<void>;
+  updateGroupStatus: (id: string, status: Group['status']) => Promise<void>;
+  deleteGroup: (id: string) => Promise<void>;
+  updateChannel: (id: string, data: Partial<Channel>) => Promise<void>;
+  sendManualMessage: (bookingId: string, type: MessageLog['type'], customTemplate?: string) => Promise<void>;
   // re-fetch helpers
   refreshAll: () => Promise<void>;
   getStats: () => HotelStats;   // legacy sync helper
@@ -77,6 +86,9 @@ export function HotelProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<User[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [messages, setMessages] = useState<MessageLog[]>([]);
   const [stats, setStats] = useState<HotelStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -88,18 +100,50 @@ export function HotelProvider({ children }: { children: ReactNode }) {
   const fetchUsers = useCallback(async () => setUsers(await api<User[]>('/api/users')), []);
   const fetchInventory = useCallback(async () => setInventory(await api<InventoryItem[]>('/api/inventory')), []);
   const fetchActivityLog = useCallback(async () => setActivityLog(await api<ActivityLog[]>('/api/logs')), []);
+  const fetchGroups = useCallback(async () => setGroups(await api<Group[]>('/api/groups')), []);
+  const fetchChannels = useCallback(async () => setChannels(await api<Channel[]>('/api/channels')), []);
+  const fetchMessages = useCallback(async () => setMessages(await api<MessageLog[]>('/api/messages')), []);
   const fetchStats = useCallback(async () => setStats(await api<HotelStats>('/api/stats')), []);
 
   const refreshAll = useCallback(async () => {
-    await Promise.all([
-      fetchRoomTypes(), fetchRooms(), fetchReservations(), fetchServices(),
-      fetchUsers(), fetchInventory(), fetchActivityLog(), fetchStats(),
-    ]);
-  }, [fetchRoomTypes, fetchRooms, fetchReservations, fetchServices, fetchUsers, fetchInventory, fetchActivityLog, fetchStats]);
+    try {
+      await Promise.all([
+        fetchRoomTypes(), fetchRooms(), fetchReservations(), fetchServices(),
+        fetchUsers(), fetchInventory(), fetchActivityLog(), fetchGroups(), fetchStats(),
+        fetchChannels(), fetchMessages(),
+      ]);
+    } catch (e: any) {
+      if (e.message === 'Unauthorized') {
+        // Quietly absorb Unauthorized errors when not logged in
+        return;
+      }
+      console.error("refreshAll error:", e);
+    }
+  }, [fetchRoomTypes, fetchRooms, fetchReservations, fetchServices, fetchUsers, fetchInventory, fetchActivityLog, fetchGroups, fetchStats, fetchChannels, fetchMessages]);
+
+  const { status } = useSession();
 
   useEffect(() => {
-    refreshAll().finally(() => setLoading(false));
-  }, [refreshAll]);
+    if (status === 'authenticated') {
+      setLoading(true);
+      refreshAll().finally(() => setLoading(false));
+    } else if (status === 'unauthenticated') {
+      setRoomTypes([]);
+      setRooms([]);
+      setReservations([]);
+      setServices([]);
+      setUsers([]);
+      setInventory([]);
+      setActivityLog([]);
+      setGroups([]);
+      setChannels([]);
+      setMessages([]);
+      setStats(null);
+      setLoading(false);
+    } else if (status === 'loading') {
+      setLoading(true);
+    }
+  }, [status, refreshAll]);
 
   /* ─── Mutators ──────────────────────────────── */
   const updateRoomStatus = useCallback(async (roomId: string, status: RoomStatus) => {
@@ -147,6 +191,31 @@ export function HotelProvider({ children }: { children: ReactNode }) {
     await Promise.all([fetchRoomTypes(), fetchActivityLog()]);
   }, [fetchRoomTypes, fetchActivityLog]);
 
+  const addGroup = useCallback(async (data: any) => {
+    await api('/api/groups', { method: 'POST', body: JSON.stringify(data) });
+    await Promise.all([fetchGroups(), fetchReservations(), fetchRooms(), fetchStats(), fetchActivityLog()]);
+  }, [fetchGroups, fetchReservations, fetchRooms, fetchStats, fetchActivityLog]);
+
+  const updateGroupStatus = useCallback(async (id: string, status: Group['status']) => {
+    await api(`/api/groups/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+    await Promise.all([fetchGroups(), fetchReservations(), fetchRooms(), fetchServices(), fetchStats(), fetchActivityLog()]);
+  }, [fetchGroups, fetchReservations, fetchRooms, fetchServices, fetchStats, fetchActivityLog]);
+
+  const deleteGroup = useCallback(async (id: string) => {
+    await api(`/api/groups/${id}`, { method: 'DELETE' });
+    await Promise.all([fetchGroups(), fetchReservations(), fetchRooms(), fetchStats(), fetchActivityLog()]);
+  }, [fetchGroups, fetchReservations, fetchRooms, fetchStats, fetchActivityLog]);
+
+  const updateChannel = useCallback(async (id: string, data: Partial<Channel>) => {
+    await api(`/api/channels/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    await Promise.all([fetchChannels(), fetchActivityLog()]);
+  }, [fetchChannels, fetchActivityLog]);
+
+  const sendManualMessage = useCallback(async (bookingId: string, type: MessageLog['type'], customTemplate?: string) => {
+    await api('/api/messages', { method: 'POST', body: JSON.stringify({ bookingId, type, customTemplate }) });
+    await Promise.all([fetchMessages(), fetchActivityLog()]);
+  }, [fetchMessages, fetchActivityLog]);
+
   /* ─── Legacy sync helper (still used in some pages) ── */
   const getStats = useCallback((): HotelStats => {
     if (stats) return stats;
@@ -169,9 +238,10 @@ export function HotelProvider({ children }: { children: ReactNode }) {
 
   return (
     <HotelContext.Provider value={{
-      roomTypes, rooms, reservations, services, users, inventory, activityLog, stats, loading,
+      roomTypes, rooms, reservations, services, users, inventory, activityLog, groups, channels, messages, stats, loading,
       updateRoomStatus, addReservation, updateReservationStatus,
       addService, billService, addUser, updateUser, adjustInventory, updateRoomType,
+      addGroup, updateGroupStatus, deleteGroup, updateChannel, sendManualMessage,
       refreshAll, getStats,
     }}>
       {children}

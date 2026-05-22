@@ -4,7 +4,7 @@
 
 import type {
   RoomType, Room, Reservation, Guest, Service,
-  InventoryItem, ActivityLog, User, RevenueData, RevenueBySource,
+  InventoryItem, ActivityLog, User, RevenueData, RevenueBySource, Channel, MessageLog,
 } from './types';
 
 export const initialRoomTypes: RoomType[] = [
@@ -88,12 +88,12 @@ export const activityLog: ActivityLog[] = [
 ];
 
 export const initialUsers: User[] = [
-  { id: 'U001', name: 'Admin',         username: 'admin',      role: 'admin',        status: 'active',   lastLogin: '2026-03-14 08:55' },
-  { id: 'U002', name: 'Lễ tân 1',      username: 'frontdesk1', role: 'frontdesk',    status: 'active',   lastLogin: '2026-03-14 07:00' },
-  { id: 'U003', name: 'Lễ tân 2',      username: 'frontdesk2', role: 'frontdesk',    status: 'active',   lastLogin: '2026-03-14 07:05' },
-  { id: 'U004', name: 'Buồng phòng 1', username: 'hk1',        role: 'housekeeping', status: 'active',   lastLogin: '2026-03-14 08:00' },
-  { id: 'U005', name: 'Kế toán',       username: 'accountant', role: 'accountant',   status: 'active',   lastLogin: '2026-03-14 08:30' },
-  { id: 'U006', name: 'Nhân viên kho', username: 'warehouse',  role: 'inventory',    status: 'inactive', lastLogin: '2026-03-10 14:00' },
+  { id: 'U001', name: 'Admin',         username: 'admin',      role: 'admin',        status: 'active',   lastLogin: '2026-03-14 08:55', password: '0aa6aa6a97fc2ccb4000f87bd9e93a2125582ff044a106c3418d95c04fbc7cae' },
+  { id: 'U002', name: 'Lễ tân 1',      username: 'frontdesk1', role: 'frontdesk',    status: 'active',   lastLogin: '2026-03-14 07:00', password: '0aa6aa6a97fc2ccb4000f87bd9e93a2125582ff044a106c3418d95c04fbc7cae' },
+  { id: 'U003', name: 'Lễ tân 2',      username: 'frontdesk2', role: 'frontdesk',    status: 'active',   lastLogin: '2026-03-14 07:05', password: '0aa6aa6a97fc2ccb4000f87bd9e93a2125582ff044a106c3418d95c04fbc7cae' },
+  { id: 'U004', name: 'Buồng phòng 1', username: 'hk1',        role: 'housekeeping', status: 'active',   lastLogin: '2026-03-14 08:00', password: '0aa6aa6a97fc2ccb4000f87bd9e93a2125582ff044a106c3418d95c04fbc7cae' },
+  { id: 'U005', name: 'Kế toán',       username: 'accountant', role: 'accountant',   status: 'active',   lastLogin: '2026-03-14 08:30', password: '0aa6aa6a97fc2ccb4000f87bd9e93a2125582ff044a106c3418d95c04fbc7cae' },
+  { id: 'U006', name: 'Nhân viên kho', username: 'warehouse',  role: 'inventory',    status: 'inactive', lastLogin: '2026-03-10 14:00', password: '0aa6aa6a97fc2ccb4000f87bd9e93a2125582ff044a106c3418d95c04fbc7cae' },
 ];
 
 export const revenueMonthly: RevenueData[] = [
@@ -117,3 +117,52 @@ export const revenueBySource: RevenueBySource[] = [
   { source: 'Agoda',       percent: 21, amount: 10962000 },
   { source: 'Khác',        percent: 12, amount: 6264000 },
 ];
+
+export const initialChannels: Channel[] = [
+  { id: 'booking', name: 'Booking.com', enabled: true, commission: 15, rateModifier: 1.15, allocatedRooms: 5, lastSync: new Date().toISOString() },
+  { id: 'agoda', name: 'Agoda', enabled: true, commission: 18, rateModifier: 1.18, allocatedRooms: 4, lastSync: new Date().toISOString() },
+  { id: 'expedia', name: 'Expedia', enabled: false, commission: 20, rateModifier: 1.20, allocatedRooms: 3, lastSync: new Date().toISOString() },
+  { id: 'airbnb', name: 'Airbnb', enabled: true, commission: 3, rateModifier: 1.05, allocatedRooms: 2, lastSync: new Date().toISOString() },
+  { id: 'direct', name: 'Bán trực tiếp', enabled: true, commission: 0, rateModifier: 1.0, allocatedRooms: 18, lastSync: new Date().toISOString() },
+];
+
+export const initialMessages: MessageLog[] = [
+  {
+    id: 'MSG1001',
+    bookingId: 'BK001',
+    guestName: 'Nguyễn Văn A',
+    phone: '0901234567',
+    email: 'nguyena@gmail.com',
+    type: 'booking_confirm',
+    status: 'sent',
+    channel: 'email+sms',
+    content: 'Kính chào quý khách Nguyễn Văn A, HotelOS xác nhận đặt phòng BK001 thành công. Thời gian lưu trú: từ 2026-05-20 đến 2026-05-22. Rất hân hạnh được phục vụ quý khách!',
+    sentAt: '2026-05-20T08:30:00Z'
+  },
+  {
+    id: 'MSG1002',
+    bookingId: 'BK002',
+    guestName: 'Trần Thị B',
+    phone: '0912345678',
+    email: 'tranb@yahoo.com',
+    type: 'checkin_remind',
+    status: 'sent',
+    channel: 'email',
+    content: 'Kính chào quý khách Trần Thị B, chúc quý khách một ngày tốt lành. HotelOS xin nhắc quý khách về lịch check-in ngày mai (2026-05-21). Hẹn gặp quý khách!',
+    sentAt: '2026-05-20T14:00:00Z'
+  },
+  {
+    id: 'MSG1003',
+    bookingId: 'BK003',
+    guestName: 'Lê Văn C',
+    phone: '0987654321',
+    email: 'levanc@hotmail.com',
+    type: 'checkout_thanks',
+    status: 'sent',
+    channel: 'email',
+    content: 'Kính chào quý khách Lê Văn C, chân thành cảm ơn quý khách đã tin tưởng và chọn lưu trú tại HotelOS. Chúc quý khách thượng lộ bình an!',
+    sentAt: '2026-05-21T10:15:00Z'
+  }
+];
+
+

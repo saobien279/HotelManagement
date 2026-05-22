@@ -92,6 +92,7 @@ export interface User {
   role: UserRole;
   status: UserStatus;
   lastLogin: string;
+  password?: string;
 }
 
 export interface RevenueData {
@@ -116,3 +117,41 @@ export interface HotelStats {
   occupancy: number;
   todayRevenue: number;
 }
+
+export interface Group {
+  id: string;          // 'GR' + timestamp
+  name: string;        // Tên đoàn/công ty
+  contact: string;     // Người liên hệ
+  phone: string;
+  checkIn: string;
+  checkOut: string;
+  totalGuests: number;
+  reservationIds: string[];  // Link đến các Reservation
+  status: 'pending' | 'confirmed' | 'checkedin' | 'checkedout' | 'cancelled';
+  note: string;
+}
+
+export interface Channel {
+  id: string;           // 'booking' | 'agoda' | 'expedia' | 'airbnb' | 'direct'
+  name: string;
+  enabled: boolean;
+  commission: number;   // % hoa hồng (VD: Booking = 15%)
+  rateModifier: number; // Hệ số giá (1.0 = giá gốc, 1.15 = +15%)
+  allocatedRooms: number; // Số phòng phân bổ
+  lastSync: string;     // ISO date
+}
+
+export interface MessageLog {
+  id: string;           // 'MSG' + timestamp/random
+  bookingId: string;
+  guestName: string;
+  phone: string;
+  email: string;
+  type: 'booking_confirm' | 'checkin_remind' | 'checkout_thanks' | 'promo';
+  status: 'sent' | 'failed' | 'pending';
+  channel: 'email' | 'sms' | 'email+sms';
+  content: string;
+  sentAt: string;       // ISO date
+}
+
+
