@@ -11,6 +11,7 @@ import {
 import type {
   RoomType, Room, Reservation, Service, InventoryItem, User, ActivityLog, Group, Channel, MessageLog,
 } from '@/lib/types';
+import crypto from 'crypto';
 
 /* ─── In-memory fallback (for local dev without Redis) ── */
 let memoryDB: DB | null = null;
@@ -69,13 +70,33 @@ export async function readDB(): Promise<DB> {
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<DB>;
       const seed = await getSeedData();
-      return { 
+      const db = { 
         ...seed, 
         ...parsed,
         groups: parsed.groups || [],
         channels: parsed.channels || seed.channels,
         messages: parsed.messages || seed.messages
       } as DB;
+
+      // Auto-migrate users' passwords to SHA256 if they are in raw/old format
+      let needsWrite = false;
+      if (db.users && Array.isArray(db.users)) {
+        db.users = db.users.map(u => {
+          if (u.password && u.password.length !== 64) {
+            const hashed = crypto.createHash('sha256').update(u.password).digest('hex');
+            needsWrite = true;
+            return { ...u, password: hashed };
+          }
+          return u;
+        });
+      }
+
+      if (needsWrite) {
+        console.log('[readDB] Auto-migrating old user passwords to SHA256...');
+        await writeDB(db);
+      }
+
+      return db;
     }
     return await seedDB();
   } catch (err) {
