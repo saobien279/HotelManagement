@@ -1,7 +1,7 @@
 # HotelOS – Toàn bộ bối cảnh dự án (Agent Context v4)
 
-> Cập nhật lần cuối: 2026-05-19  
-> Trạng thái: **Production-ready (local)** → chuẩn bị deploy lên web + cloud DB
+> Cập nhật lần cuối: 2026-05-22
+> Trạng thái: **Production-ready** – Hoàn thành toàn bộ các Phase (1 đến 4). Sẵn sàng deploy cloud DB.
 
 ---
 
@@ -222,6 +222,13 @@ newId.log()         // 'L'  + ...
 - Các class CSS in ấn đã được sửa đúng: `.modal-overlay` (thay vì `.modal-container`), `.modal-box` (thay vì `.modal-content`)
 - File: `app/frontdesk/page.tsx`, `app/globals.css`
 
+### Phase 4: Advanced Features (Hoàn thành)
+- **4A. Notification System**: Hệ thống thông báo real-time qua `NotificationContext`, hiển thị icon chuông Topbar (đặt phòng mới, check-in, check-out đến hạn, hàng sắp hết tồn). Có badge đếm số, dropdown panel, lưu trữ trạng thái đọc qua localStorage.
+- **4B. Authentication**: Tích hợp NextAuth.js phân quyền theo Role (`admin`, `frontdesk`, `housekeeping`, `accountant`, `inventory`). Trang đăng nhập chuyên biệt, Middleware bảo vệ các routes.
+- **4C. Khách đoàn (Groups)**: Giao diện quản lý khách đoàn, tự động phân phòng trống, thao tác check-in/out cho cả đoàn, tính năng gộp hóa đơn toàn bộ booking trong đoàn.
+- **4D. Channel Manager (OTA)**: Giao diện quản lý các kênh (Booking, Agoda, Expedia, Airbnb, Direct), cấu hình Rate Parity, đồng bộ inventory.
+- **4E. Email/SMS Automation**: Hệ thống MessageQueue mô phỏng, tự động trigger gửi email/SMS xác nhận khi Đặt phòng, Check-in, và Check-out. Hiển thị log tin nhắn tại trang Admin.
+
 ---
 
 ## 🌐 Kế hoạch Deploy lên Web + Cloud DB
@@ -321,16 +328,13 @@ vercel --prod
 - [ ] **Push GitHub → Deploy Vercel**: Setup env vars KV_* trên dashboard
 - [ ] **Seed data check**: Đảm bảo KV được seed đúng lần đầu
 
-### P1 – Features (Tiếp theo)
-- [ ] **Authentication**: Thêm NextAuth.js với role-based access (login/logout/phân quyền theo `UserRole`)
+### P1 – Cải tiến UI/UX & Nâng cấp (Tương lai)
 - [ ] **Pagination**: Bảng reservations/services/logs khi data lớn
 - [ ] **Cấu hình giá theo mùa nâng cao**: Admin page – UI chỉnh Peak/Off-peak pricing trực tiếp (API đã có, UI cần cải thiện)
 
-### P2 – Improvements (Nâng cấp)
+### P2 – Báo cáo & Tối ưu hóa
 - [ ] **Báo cáo nâng cao**: Thêm biểu đồ tương tác (recharts hoặc SVG), so sánh liên kỳ, drill-down theo loại phòng
 - [ ] **Export PDF/Excel**: Xuất file báo cáo doanh thu chuyên nghiệp (hiện chỉ có CSV cơ bản)
-- [ ] **Khách đoàn (Groups)**: Tab "Khách đoàn" tại Frontdesk hiện là placeholder UI – cần logic backend: gộp hóa đơn, chia hóa đơn, check-in cả đoàn
-- [ ] **Thông báo realtime**: WebSocket/SSE cho thông báo check-in, đặt phòng mới, hàng sắp hết
 - [ ] **Lịch sử xuất nhập kho**: Hiện chỉ điều chỉnh stock trực tiếp, chưa ghi log xuất nhập riêng
 - [ ] **Đa ngôn ngữ (i18n)**: Hỗ trợ EN/VI toggle
 
