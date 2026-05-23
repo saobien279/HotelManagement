@@ -146,8 +146,9 @@ export default function ReservationPage() {
         if (checkOut <= checkIn) { toast('Ngày đi phải sau ngày đến', 'warn'); return; }
         const rt     = roomTypes.find(t => t.id === type)!;
         const nights = calcNights(checkIn, checkOut);
+        const email = (document.getElementById('nb_email') as HTMLInputElement)?.value.trim() || undefined;
         addReservation({
-          guestName: name, phone, 
+          guestName: name, phone, email,
           roomId:   (document.getElementById('nb_room') as HTMLSelectElement).value || null,
           roomType: type, checkIn, checkOut,
           adults:   +(document.getElementById('nb_adults') as HTMLInputElement).value,

@@ -38,8 +38,8 @@ export function sendAutomationMessage(
   const content = compileMessage(template, booking);
   const channel = TEMPLATE_CHANNELS[type];
 
-  // Mock guest email if missing
-  const email = `${booking.guestName.toLowerCase().replace(/\s+/g, '')}@example.com`;
+  // Use real guest email if available, otherwise mock it
+  const email = booking.email || `${booking.guestName.toLowerCase().replace(/\s+/g, '')}@example.com`;
 
   const newMessage: MessageLog = {
     id: newId.message(),

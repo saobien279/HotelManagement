@@ -247,7 +247,7 @@ export default function AdminPage() {
                 <div key={rt.id} style={{background:'var(--bg-elevated)',borderRadius:'var(--radius-md)',padding:14,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
                   <div><div style={{fontWeight:700,fontSize:14}}>{rt.name}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>Tối đa {rt.capacity} khách · ID: {rt.id}</div></div>
                   <div style={{textAlign:'right'}}><div style={{fontSize:15,fontWeight:800,color:'#A5B4FC'}}>{fmtShort(rt.basePrice)}</div><div style={{fontSize:10,color:'var(--text-muted)'}}>/đêm</div></div>
-                  <button className="btn btn-ghost btn-sm" onClick={()=>toast('Mở form chỉnh sửa giá phòng','info')}><Edit2 size={13}/></button>
+                  <button className="btn btn-ghost btn-sm" onClick={()=>toast('Tính năng chỉnh sửa cấu hình giá phòng đang phát triển!','info')}><Edit2 size={13}/></button>
                 </div>
               ))}
             </div>
@@ -423,7 +423,7 @@ export default function AdminPage() {
                   <div><div style={{fontWeight:600,fontSize:13}}>{t.label}</div><div style={{fontSize:11,color:'var(--text-muted)'}}>{t.trigger} · {t.channel}</div></div>
                   <div style={{display:'flex',alignItems:'center',gap:8}}>
                     <span className={`badge ${t.active?'badge-confirmed':'badge-pending'}`}>{t.active?'Bật':'Tắt'}</span>
-                    <button className="btn btn-ghost btn-sm" onClick={()=>toast('Mở cài đặt email','info')}><Edit2 size={13}/></button>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>toast('Tính năng tùy chỉnh mẫu email đang phát triển!','info')}><Edit2 size={13}/></button>
                   </div>
                 </div>
               ))}

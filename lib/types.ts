@@ -31,6 +31,7 @@ export interface Reservation {
   id: string;
   guestName: string;
   phone: string;
+  email?: string;
   roomId: string | null;
   roomType: RoomTypeId;
   checkIn: string;

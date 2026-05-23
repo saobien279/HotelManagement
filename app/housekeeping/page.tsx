@@ -8,19 +8,28 @@ import { roomTypeLabel, statusBadgeClass, statusLabel } from '@/lib/utils';
 import { Sparkles, Wrench, CheckCircle, LayoutGrid, BedDouble, Package, ClipboardList } from 'lucide-react';
 import type { RoomStatus } from '@/lib/types';
 
-const initialTasks = [
-  { id: 1, room: '103', type: 'Vệ sinh toàn phần', assignee: 'Buồng phòng 1', priority: 'high' as const, time: '08:00', done: true },
-  { id: 2, room: '204', type: 'Thay ga, khăn',     assignee: 'Buồng phòng 1', priority: 'high' as const, time: '09:00', done: true },
-  { id: 3, room: '304', type: 'Vệ sinh toàn phần', assignee: 'Buồng phòng 2', priority: 'high' as const, time: '10:00', done: false },
-  { id: 4, room: '106', type: 'Sửa điều hòa',      assignee: 'Kỹ thuật',       priority: 'medium' as const, time: '11:00', done: false },
-  { id: 5, room: '301', type: 'Bổ sung minibar',   assignee: 'Buồng phòng 1', priority: 'low' as const,    time: '14:00', done: false },
+interface HousekeepingTask {
+  id: number;
+  room: string;
+  type: string;
+  assignee: string;
+  priority: 'high' | 'medium' | 'low';
+  time: string;
+  done: boolean;
+}
+
+const initialTasks: HousekeepingTask[] = [
+  { id: 1, room: '103', type: 'Vệ sinh toàn phần', assignee: 'Buồng phòng 1', priority: 'high', time: '08:00', done: true },
+  { id: 2, room: '204', type: 'Thay ga, khăn',     assignee: 'Buồng phòng 1', priority: 'high', time: '09:00', done: true },
+  { id: 3, room: '304', type: 'Vệ sinh toàn phần', assignee: 'Buồng phòng 2', priority: 'high', time: '10:00', done: false },
+  { id: 4, room: '106', type: 'Sửa điều hòa',      assignee: 'Kỹ thuật',       priority: 'medium', time: '11:00', done: false },
+  { id: 5, room: '301', type: 'Bổ sung minibar',   assignee: 'Buồng phòng 1', priority: 'low',    time: '14:00', done: false },
 ];
 const priorityColor = { high:'var(--color-danger)', medium:'var(--color-warning)', low:'var(--color-info)' };
 const priorityLabel = { high:'Cao', medium:'Trung bình', low:'Thấp' };
 
 export default function HousekeepingPage() {
   const [activeTab, setActiveTab] = useState<'rooms'|'supplies'|'tasks'>('rooms');
-  const [tasks, setTasks] = useState(initialTasks);
   const { rooms, updateRoomStatus, inventory, adjustInventory } = useHotel();
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
@@ -29,9 +38,99 @@ export default function HousekeepingPage() {
   const maintenance = rooms.filter(r=>r.status==='maintenance').length;
   const vacant      = rooms.filter(r=>r.status==='vacant').length;
 
+  // Load tasks from localStorage on mount, fallback to initialTasks
+  const [tasks, setTasks] = useState<HousekeepingTask[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('hotelOS:housekeeping_tasks');
+      if (stored) {
+        try {
+          return JSON.parse(stored) as HousekeepingTask[];
+        } catch (e) {}
+      }
+    }
+    return initialTasks;
+  });
+
+  const saveTasks = (newTasks: typeof initialTasks) => {
+    setTasks(newTasks);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hotelOS:housekeeping_tasks', JSON.stringify(newTasks));
+    }
+  };
+
   const toggleTask = (id: number) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
+    const updated = tasks.map(t => t.id === id ? { ...t, done: !t.done } : t);
+    saveTasks(updated);
     toast('Đã cập nhật trạng thái công việc!', 'success');
+  };
+
+  const deleteTask = (id: number) => {
+    const updated = tasks.filter(t => t.id !== id);
+    saveTasks(updated);
+    toast('Đã xóa công việc thành công!', 'success');
+  };
+
+  const openAddTask = () => {
+    openModal('Thêm công việc hôm nay', (
+      <div>
+        <div className="form-group">
+          <label className="form-label">Chọn phòng *</label>
+          <select id="task_room" className="form-select">
+            {rooms.map(r => <option key={r.id} value={r.id}>Phòng {r.id} ({roomTypeLabel[r.type] || r.type})</option>)}
+          </select>
+        </div>
+        <div className="form-group">
+          <label className="form-label">Loại công việc *</label>
+          <input id="task_type" type="text" className="form-input" placeholder="Vệ sinh phòng, Sửa vòi nước, Thay ga giường..."/>
+        </div>
+        <div className="form-group">
+          <label className="form-label">Nhân viên thực hiện *</label>
+          <input id="task_assignee" type="text" className="form-input" placeholder="Buồng phòng 1, Kỹ thuật..."/>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Giờ thực hiện</label>
+            <input id="task_time" type="time" className="form-input" defaultValue="09:00"/>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Mức độ ưu tiên</label>
+            <select id="task_priority" className="form-select">
+              <option value="low">Thấp</option>
+              <option value="medium">Trung bình</option>
+              <option value="high">Cao</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    ), [
+      { label: 'Thêm mới', cls: 'btn-primary', onClick: () => {
+        const room = (document.getElementById('task_room') as HTMLSelectElement)?.value;
+        const type = (document.getElementById('task_type') as HTMLInputElement)?.value.trim();
+        const assignee = (document.getElementById('task_assignee') as HTMLInputElement)?.value.trim();
+        const time = (document.getElementById('task_time') as HTMLInputElement)?.value;
+        const priority = (document.getElementById('task_priority') as HTMLSelectElement)?.value as any;
+
+        if (!room || !type || !assignee) {
+          toast('Vui lòng điền các trường bắt buộc (*)', 'warn');
+          return;
+        }
+
+        const newTask = {
+          id: Date.now(),
+          room,
+          type,
+          assignee,
+          time: time || '09:00',
+          priority,
+          done: false
+        };
+
+        saveTasks([newTask, ...tasks]);
+        closeModal();
+        toast('Đã thêm công việc mới thành công!', 'success');
+      }},
+      { label: 'Hủy', cls: 'btn-ghost', onClick: closeModal }
+    ]);
   };
 
   const openAddSupply = () => {
@@ -154,26 +253,37 @@ export default function HousekeepingPage() {
       )}
 
       {activeTab==='tasks' && (
-        <div className="card" style={{padding:0,overflow:'hidden'}}>
-          <div className="table-wrapper">
-            <table className="table">
-              <thead><tr><th>Phòng</th><th>Công việc</th><th>Nhân viên</th><th>Giờ</th><th>Mức độ</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
-              <tbody>
-                {tasks.map(t=>(
-                  <tr key={t.id} style={{opacity:t.done?0.5:1}}>
-                    <td><strong>P.{t.room}</strong></td>
-                    <td>{t.type}</td>
-                    <td style={{color:'var(--text-secondary)'}}>{t.assignee}</td>
-                    <td>{t.time}</td>
-                    <td><span style={{color:priorityColor[t.priority],fontWeight:700,fontSize:12}}>{priorityLabel[t.priority]}</span></td>
-                    <td>{t.done?<span className="badge badge-confirmed">Hoàn thành</span>:<span className="badge badge-pending">Chưa xong</span>}</td>
-                    <td>{!t.done&&<button className="btn btn-primary btn-sm" onClick={()=>toggleTask(t.id)}>Xong</button>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <>
+          <div style={{display:'flex',justifyContent:'flex-end',marginBottom:16}}>
+            <button className="btn btn-primary btn-sm" onClick={openAddTask}>+ Thêm công việc</button>
           </div>
-        </div>
+          <div className="card" style={{padding:0,overflow:'hidden'}}>
+            <div className="table-wrapper">
+              <table className="table">
+                <thead><tr><th>Phòng</th><th>Công việc</th><th>Nhân viên</th><th>Giờ</th><th>Mức độ</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+                <tbody>
+                  {tasks.map(t=>(
+                    <tr key={t.id} style={{opacity:t.done?0.5:1}}>
+                      <td><strong>P.{t.room}</strong></td>
+                      <td>{t.type}</td>
+                      <td style={{color:'var(--text-secondary)'}}>{t.assignee}</td>
+                      <td>{t.time}</td>
+                      <td><span style={{color:priorityColor[t.priority],fontWeight:700,fontSize:12}}>{priorityLabel[t.priority]}</span></td>
+                      <td>{t.done?<span className="badge badge-confirmed">Hoàn thành</span>:<span className="badge badge-pending">Chưa xong</span>}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {!t.done && <button className="btn btn-primary btn-sm" onClick={()=>toggleTask(t.id)}>Xong</button>}
+                          {t.done && <button className="btn btn-ghost btn-sm" onClick={()=>toggleTask(t.id)} style={{ color: 'var(--text-muted)' }}>Chưa xong</button>}
+                          <button className="btn btn-ghost btn-sm" style={{color:'var(--color-danger)'}} onClick={()=>deleteTask(t.id)}>Xóa</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </>
   );

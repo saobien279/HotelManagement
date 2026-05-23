@@ -90,6 +90,7 @@ export default function ReportsPage() {
   const curMonth = parseInt(TODAY.split('-')[1] || '3', 10);
   const curYear = parseInt(TODAY.split('-')[0] || '2026', 10);
   const curQuarter = Math.floor((curMonth - 1) / 3) + 1;
+  const currentMonthStr = 'T' + curMonth;
 
   const periodLabel = period === 'month' ? `Tháng ${curMonth}/${curYear}` : period === 'quarter' ? `Quý ${curQuarter}/${curYear}` : `Năm ${curYear}`;
   const shortPeriodLabel = period === 'month' ? `Tháng ${curMonth}` : period === 'quarter' ? `Quý ${curQuarter}` : `Năm ${curYear}`;
@@ -259,7 +260,7 @@ export default function ReportsPage() {
                   <div className="bar-item" key={r.month}>
                     <div className="bar-value">{fmtShort(r.revenue)}</div>
                     <div
-                      className={`bar-fill${r.month==='T3'?' highest':r.revenue===maxRev?' highest':''}`}
+                      className={`bar-fill${r.month===currentMonthStr?' highest':r.revenue===maxRev?' highest':''}`}
                       style={{ height:`${Math.round((r.revenue/maxRev)*100)}%` }}
                     />
                     <div className="bar-label">{r.month}</div>
@@ -363,7 +364,7 @@ export default function ReportsPage() {
                   <div className="bar-item" key={r.month}>
                     <div className="bar-value">{fmtShort(r.revenue)}</div>
                     <div
-                      className={`bar-fill${r.month==='T3'?' highest':''}`}
+                      className={`bar-fill${r.month===currentMonthStr?' highest':''}`}
                       style={{ height:`${Math.round((r.revenue/maxRev)*100)}%` }}
                     />
                     <div className="bar-label">{r.month}</div>
@@ -422,10 +423,10 @@ export default function ReportsPage() {
                     const monthAdr  = roomNightsSold > 0 ? Math.round(r.revenue / roomNightsSold) : 0;
                     const monthRevpar = Math.round(r.revenue / (TOTAL_ROOMS * 30));
                     return (
-                      <tr key={r.month} style={{ fontWeight: r.month==='T3' ? 700 : undefined }}>
+                      <tr key={r.month} style={{ fontWeight: r.month===currentMonthStr ? 700 : undefined }}>
                         <td>
                           <span style={{ fontWeight:700 }}>{r.month}/2026</span>
-                          {r.month==='T3' && <span className="badge badge-checkedin badge-sm" style={{marginLeft:6}}>Hiện tại</span>}
+                          {r.month===currentMonthStr && <span className="badge badge-checkedin badge-sm" style={{marginLeft:6}}>Hiện tại</span>}
                         </td>
                         <td style={{ textAlign:'right', fontVariantNumeric:'tabular-nums' }}>{fmtShort(r.revenue)}</td>
                         <td style={{ textAlign:'right', color:'var(--color-info)', fontVariantNumeric:'tabular-nums' }}>{fmtShort(svc)}</td>
