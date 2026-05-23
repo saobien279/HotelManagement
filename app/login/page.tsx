@@ -294,23 +294,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Demo Accounts Footnote */}
-        <div style={{ 
-          marginTop: 32, 
-          textAlign: 'center', 
-          fontSize: 11.5, 
-          color: '#64748b', 
-          lineHeight: 1.6,
-          borderTop: '1px solid rgba(255,255,255,0.06)',
-          paddingTop: 24
-        }}>
-          Mật khẩu mặc định của tất cả tài khoản demo là <strong style={{ color: '#818cf8' }}>hotel123</strong>.
-          <div style={{ marginTop: 10, display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap', color: '#94a3b8' }}>
-            <span style={{ background: 'rgba(255,255,255,0.03)', padding: '2px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.04)' }}>admin (Admin)</span>
-            <span style={{ background: 'rgba(255,255,255,0.03)', padding: '2px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.04)' }}>frontdesk1 (Lễ tân)</span>
-            <span style={{ background: 'rgba(255,255,255,0.03)', padding: '2px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.04)' }}>hk1 (Buồng phòng)</span>
-          </div>
-        </div>
+
       </div>
     </div>
   );
