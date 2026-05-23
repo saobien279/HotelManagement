@@ -1,7 +1,7 @@
-# HotelOS – Toàn bộ bối cảnh dự án (Agent Context v4)
+# HotelOS – Toàn bộ bối cảnh dự án (Agent Context v5)
 
 > Cập nhật lần cuối: 2026-05-22
-> Trạng thái: **Production-ready** – Hoàn thành toàn bộ các Phase (1 đến 4). Sẵn sàng deploy cloud DB.
+> Trạng thái: **Production-ready** – Hoàn thành tất cả các Phase (1 đến 4). Đã tích hợp đầy đủ hệ thống Authentication, Notifications, Khách đoàn (Groups), Channel Manager (OTA) và Automation. Sẵn sàng migrate cloud DB.
 
 ---
 
@@ -26,10 +26,13 @@
 ```
 HotelManagement/
 ├── app/
-│   ├── layout.tsx              # Root: HotelProvider > UIProvider > AppShell > children
-│   ├── page.tsx                # Dashboard (10KB – stats cards, room grid, logs, charts)
-│   ├── globals.css             # ~45KB – toàn bộ CSS Variables + component classes + @media print
+│   ├── layout.tsx              # Root Provider tree setup (Session, Hotel, Notification, UI, AppShell)
+│   ├── page.tsx                # Dashboard (stats cards, room grid, logs, charts)
+│   ├── globals.css             # ~49KB – toàn bộ CSS Variables + component classes + @media print
+│   ├── login/                  # Trang đăng nhập chuyên biệt
+│   │   └── page.tsx
 │   ├── api/
+│   │   ├── auth/[...nextauth]/route.ts # NextAuth Route Handler (Credentials Provider)
 │   │   ├── rooms/route.ts      # GET (filter: floor, status, type)
 │   │   ├── rooms/[id]/route.ts # PATCH (status)
 │   │   ├── room-types/route.ts        # GET
@@ -42,25 +45,35 @@ HotelManagement/
 │   │   ├── inventory/[id]/route.ts     # PATCH (adjustment: number, hỗ trợ cả +/-)
 │   │   ├── users/route.ts              # GET | POST (unique username check)
 │   │   ├── users/[id]/route.ts         # PATCH
+│   │   ├── groups/route.ts             # GET | POST (Khách đoàn)
+│   │   ├── groups/[id]/route.ts        # GET | PATCH | DELETE
+│   │   ├── channels/route.ts           # GET | POST (OTA/Channel Manager)
+│   │   ├── channels/[id]/route.ts      # PATCH
+│   │   ├── messages/route.ts           # GET | POST (Nhật ký email/SMS & trigger thủ công)
 │   │   ├── logs/route.ts               # GET (readonly)
 │   │   └── stats/route.ts              # GET (computed KPIs)
-│   ├── reservation/page.tsx    # ~31KB – room map + booking form + dynamic price calc
-│   ├── frontdesk/page.tsx      # ~32KB – check-in/out + invoice + print invoice
-│   ├── housekeeping/page.tsx   # ~11KB – quản lý trạng thái phòng
-│   ├── pos/page.tsx            # ~18KB – POS dịch vụ + nhập/xuất kho
-│   ├── reports/page.tsx        # ~41KB – báo cáo doanh thu, biểu đồ, lọc theo thời gian
-│   └── admin/page.tsx          # ~26KB – quản lý users, config giá, nhật ký hệ thống
+│   ├── reservation/page.tsx    # Sơ đồ phòng visual + form đặt phòng + tính giá tự động
+│   ├── frontdesk/page.tsx      # Quản lý Check-in/out, In hóa đơn & Quản lý Khách đoàn (Groups tab)
+│   ├── housekeeping/page.tsx   # Quản lý trạng thái phòng nhanh
+│   ├── pos/page.tsx            # POS dịch vụ (7 loại) & Nhập/Xuất kho hàng
+│   ├── reports/page.tsx        # Báo cáo doanh thu, công suất, lọc Tháng/Quý/Năm linh hoạt
+│   └── admin/page.tsx          # QL Users, Channel Manager, SMS/Email Automation, Config giá
 ├── components/
-│   ├── layout/AppShell.tsx     # Sidebar (collapsible) + Topbar + Global Search (Ctrl+K)
+│   ├── layout/AppShell.tsx     # Sidebar (collapsible) + Topbar (Notif Bell + Ctrl+K Search)
 │   └── ui/UIProvider.tsx       # Modal context + Toast context (3.8s auto-dismiss)
 ├── context/
-│   └── HotelContext.tsx        # Single Source of Truth – tất cả state + mutators
+│   ├── HotelContext.tsx        # Single Source of Truth – tất cả state + mutators
+│   └── NotificationContext.tsx # Hệ thống thông báo thời gian thực (check-out, tồn kho, booking)
 ├── lib/
-│   ├── types.ts                # TypeScript interfaces (xem bảng bên dưới)
+│   ├── auth.ts                 # NextAuth setup & Credentials verification (SHA-256)
+│   ├── auth.config.ts          # Cấu hình NextAuth & Route Authorization
+│   ├── messaging.ts            # Mô phỏng MessageQueue & SMS/Email Template Automation
+│   ├── types.ts                # TypeScript interfaces (xem chi tiết bên dưới)
 │   ├── utils.ts                # fmt, fmtDate, calcNights, TODAY, statusLabel, calcRoomPrice, ...
 │   ├── db.ts                   # readDB() / writeDB() / appendLog() / newId
-│   └── data.ts                 # Seed data (18 rooms, 9 reservations, 5 services, 8 inventory, 6 users)
-└── data/db.json                # ~49KB – runtime database (auto-seeded nếu không tồn tại)
+│   └── data.ts                 # Seed data toàn diện (rooms, bookings, channels, message logs)
+├── middleware.ts               # Phân quyền Role-based routing protection
+└── data/db.json                # ~49KB – runtime database (auto-seeded)
 ```
 
 ---
@@ -85,10 +98,14 @@ Reservation   { id, guestName, phone, roomId: string|null, roomType, checkIn, ch
                 adults, children, status, source, note, total }
 Service       { id, bookingId, name, qty, unit, price, date, status }
 InventoryItem { id, name, category, unit, stock, minStock, cost }
-User          { id, name, username, role, status, lastLogin }
+User          { id, name, username, role, status, lastLogin, password? }
 ActivityLog   { id, time, date, user, action, type }
 Guest         { id, name, cccd, passport?, phone, email, nationality, bookings, totalSpent }
-HotelStats    { total, occupied, vacant, cleaning, reserved, maintenance, occupancy, todayRevenue }
+HotelStats    { total, occupied, vacant, cleaning, reserved, maintenance, occupancy, todayRevenue, totalServiceRevenue, checkInToday, checkOutToday, lowStockItems }
+Group         { id, name, contact, phone, checkIn, checkOut, totalGuests, reservationIds, status, note }
+Channel       { id, name, enabled, commission, rateModifier, allocatedRooms, lastSync }
+MessageLog    { id, bookingId, guestName, phone, email, type, status, channel, content, sentAt }
+AppNotification { id, title, message, type, time, read }
 ```
 
 ---
@@ -115,12 +132,19 @@ User Action (UI)
 | `updateUser(id, data)` | `PATCH /api/users/:id` | users |
 | `adjustInventory(id, adjustment)` | `PATCH /api/inventory/:id` | inventory |
 | `updateRoomType(id, data)` | `PATCH /api/room-types/:id` | roomTypes |
+| `addGroup(data)` | `POST /api/groups` | groups, reservations, rooms, stats |
+| `updateGroupStatus(id, status)` | `PATCH /api/groups/:id` | groups, reservations, rooms, services, stats |
+| `deleteGroup(id)` | `DELETE /api/groups/:id` | groups, reservations, rooms, stats |
+| `updateChannel(id, data)` | `PATCH /api/channels/:id` | channels |
+| `sendManualMessage(bookingId, type, customTemplate?)` | `POST /api/messages` | messages |
 
 ### Side effects tự động trong API
 - `POST /api/reservations`: nếu có `roomId` → tự set room `occupied`/`reserved`
 - `PATCH /api/reservations/:id status=checkedin` → room `occupied`, appendLog
 - `PATCH /api/reservations/:id status=checkedout` → room `cleaning`, auto-bill tất cả services của booking, appendLog
 - `PATCH /api/reservations/:id status=cancelled` → room `vacant`, appendLog
+- **Check-in/out Khách đoàn (Groups)**: Khi thực hiện thao tác check-in/out trên đoàn khách, trạng thái của tất cả reservations và rooms thuộc đoàn được tự động cập nhật đồng bộ.
+- **SMS/Email Automation**: Khi các thao tác Đặt phòng, Check-in, Check-out hoàn tất, hệ thống tự động sinh và gửi tin nhắn tương ứng vào hàng đợi tin nhắn (`lib/messaging.ts`) và lưu lịch sử `MessageLog`.
 
 ---
 
@@ -142,7 +166,7 @@ toast(message: string, type?: 'success'|'error'|'warn'|'info')
 ## 🛠️ Hằng số & Utilities (lib/utils.ts)
 
 ```typescript
-TODAY         // YYYY-MM-DD, dùng en-CA locale để tránh lỗi timezone
+TODAY         // YYYY-MM-DD, dùng en-CA locale để tránh lỗi timezone   
 fmt(n)        // "1.550.000 ₫" (vi-VN currency)
 fmtShort(n)   // "1.55tr", "550K"
 fmtDate(str)  // YYYY-MM-DD → "dd/MM/yyyy"
@@ -360,10 +384,12 @@ vercel --prod
 
 ```
 RootLayout (app/layout.tsx)
-  └── HotelProvider        (context/HotelContext.tsx) – data layer
-        └── UIProvider     (components/ui/UIProvider.tsx) – modal + toast
-              └── AppShell (components/layout/AppShell.tsx) – sidebar + topbar + search
-                    └── {children} – các page routes
+  └── SessionProvider      (next-auth/react) – auth layer
+        └── HotelProvider        (context/HotelContext.tsx) – data layer
+              └── NotificationProvider (context/NotificationContext.tsx) – notification layer
+                    └── UIProvider     (components/ui/UIProvider.tsx) – modal + toast
+                          └── AppShell (components/layout/AppShell.tsx) – sidebar + topbar + search
+                                └── {children} – các page routes
 ```
 
 **Import pattern cho pages:**
@@ -371,8 +397,9 @@ RootLayout (app/layout.tsx)
 import { useHotel } from '@/context/HotelContext';
 import { useModal } from '@/components/ui/UIProvider';
 import { useToast } from '@/components/ui/UIProvider';
+import { useNotification } from '@/context/NotificationContext';
 import { fmt, fmtDate, fmtShort, calcNights, TODAY, calcRoomPrice } from '@/lib/utils';
-import type { Room, Reservation, RoomType, ... } from '@/lib/types';
+import type { Room, Reservation, RoomType, Group, Channel, MessageLog } from '@/lib/types';
 ```
 
 ---

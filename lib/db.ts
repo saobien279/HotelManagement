@@ -82,6 +82,10 @@ export async function readDB(): Promise<DB> {
       let needsWrite = false;
       if (db.users && Array.isArray(db.users)) {
         db.users = db.users.map(u => {
+          if (!u.password) {
+            needsWrite = true;
+            return { ...u, password: '0aa6aa6a97fc2ccb4000f87bd9e93a2125582ff044a106c3418d95c04fbc7cae' }; // default hash for 'hotel123'
+          }
           if (u.password && u.password.length !== 64) {
             const hashed = crypto.createHash('sha256').update(u.password).digest('hex');
             needsWrite = true;
