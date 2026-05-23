@@ -362,23 +362,9 @@ export default function FrontDeskPage() {
           </div>
           {r.note && <div style={{ fontSize:12, marginTop:6, color:'var(--color-info)', fontStyle:'italic' }}>📝 {r.note}</div>}
         </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label className="form-label">CCCD / Hộ chiếu <span style={{color:'var(--color-danger)'}}>*</span></label>
-            <input id="ci_cccd" type="text" className="form-input" placeholder="079 xxx xxx xxx"/>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Phương thức thanh toán cọc</label>
-            <select id="ci_payment" className="form-select">
-              <option value="cash">Tiền mặt</option>
-              <option value="transfer">Chuyển khoản</option>
-              <option value="card">Thẻ tín dụng</option>
-            </select>
-          </div>
-        </div>
         <div className="form-group">
-          <label className="form-label">Số tiền đặt cọc (VND)</label>
-          <input id="ci_deposit" type="number" className="form-input" placeholder="0" defaultValue={Math.round(r.total / 2)}/>
+          <label className="form-label">CCCD / Hộ chiếu <span style={{color:'var(--color-danger)'}}>*</span></label>
+          <input id="ci_cccd" type="text" className="form-input" placeholder="079 xxx xxx xxx"/>
         </div>
         {!r.roomId && (
           <div className="form-group">

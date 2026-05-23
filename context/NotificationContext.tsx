@@ -8,7 +8,7 @@ export interface AppNotification {
   id: string;
   title: string;
   message: string;
-  type: 'checkin' | 'booking' | 'inventory' | 'checkout' | 'system';
+  type: 'checkin' | 'booking' | 'inventory' | 'checkout' | 'system' | 'housekeeping';
   time: string;
   read: boolean;
 }
@@ -68,14 +68,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // 3. Activity logs (checkin, booking)
+    // 3. Activity logs (checkin, booking, housekeeping)
     activityLog.forEach(log => {
-      if (log.date === TODAY && (log.type === 'checkin' || log.type === 'booking')) {
+      if (log.date === TODAY && (log.type === 'checkin' || log.type === 'booking' || log.type === 'housekeeping')) {
+        let title = 'Đặt phòng mới';
+        if (log.type === 'checkin') title = 'Check-in mới';
+        if (log.type === 'housekeeping') title = 'Cập nhật buồng phòng';
+
         notifs.push({
           id: `log-${log.id}`,
-          title: log.type === 'checkin' ? 'Check-in mới' : 'Đặt phòng mới',
+          title,
           message: log.action,
-          type: log.type,
+          type: log.type as any,
           time: log.time,
           read: readIds.has(`log-${log.id}`)
         });

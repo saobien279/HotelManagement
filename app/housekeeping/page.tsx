@@ -30,7 +30,7 @@ const priorityLabel = { high:'Cao', medium:'Trung bình', low:'Thấp' };
 
 export default function HousekeepingPage() {
   const [activeTab, setActiveTab] = useState<'rooms'|'supplies'|'tasks'>('rooms');
-  const { rooms, updateRoomStatus, inventory, adjustInventory } = useHotel();
+  const { rooms, updateRoomStatus, inventory, adjustInventory, addActivityLog } = useHotel();
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
 
@@ -58,10 +58,19 @@ export default function HousekeepingPage() {
     }
   };
 
-  const toggleTask = (id: number) => {
-    const updated = tasks.map(t => t.id === id ? { ...t, done: !t.done } : t);
+  const toggleTask = async (id: number) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    const isDoneNow = !task.done;
+    const updated = tasks.map(t => t.id === id ? { ...t, done: isDoneNow } : t);
     saveTasks(updated);
     toast('Đã cập nhật trạng thái công việc!', 'success');
+    try {
+      const actionText = isDoneNow 
+        ? `Hoàn thành công việc: P.${task.room} – ${task.type}` 
+        : `Chưa hoàn thành công việc: P.${task.room} – ${task.type}`;
+      await addActivityLog('Buồng phòng', actionText, 'housekeeping');
+    } catch (e) {}
   };
 
   const deleteTask = (id: number) => {
@@ -103,7 +112,7 @@ export default function HousekeepingPage() {
         </div>
       </div>
     ), [
-      { label: 'Thêm mới', cls: 'btn-primary', onClick: () => {
+      { label: 'Thêm mới', cls: 'btn-primary', onClick: async () => {
         const room = (document.getElementById('task_room') as HTMLSelectElement)?.value;
         const type = (document.getElementById('task_type') as HTMLInputElement)?.value.trim();
         const assignee = (document.getElementById('task_assignee') as HTMLInputElement)?.value.trim();
@@ -128,6 +137,9 @@ export default function HousekeepingPage() {
         saveTasks([newTask, ...tasks]);
         closeModal();
         toast('Đã thêm công việc mới thành công!', 'success');
+        try {
+          await addActivityLog('Buồng phòng', `Thêm công việc: P.${room} – ${type} (Phân công: ${assignee})`, 'housekeeping');
+        } catch (e) {}
       }},
       { label: 'Hủy', cls: 'btn-ghost', onClick: closeModal }
     ]);

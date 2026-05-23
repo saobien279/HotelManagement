@@ -71,6 +71,7 @@ interface HotelContextValue {
   deleteGroup: (id: string) => Promise<void>;
   updateChannel: (id: string, data: Partial<Channel>) => Promise<void>;
   sendManualMessage: (bookingId: string, type: MessageLog['type'], customTemplate?: string) => Promise<void>;
+  addActivityLog: (user: string, action: string, type: any) => Promise<void>;
   // re-fetch helpers
   refreshAll: () => Promise<void>;
   getStats: () => HotelStats;   // legacy sync helper
@@ -216,6 +217,11 @@ export function HotelProvider({ children }: { children: ReactNode }) {
     await Promise.all([fetchMessages(), fetchActivityLog()]);
   }, [fetchMessages, fetchActivityLog]);
 
+  const addActivityLog = useCallback(async (user: string, action: string, type: any) => {
+    await api('/api/logs', { method: 'POST', body: JSON.stringify({ user, action, type }) });
+    await fetchActivityLog();
+  }, [fetchActivityLog]);
+
   /* ─── Legacy sync helper (still used in some pages) ── */
   const getStats = useCallback((): HotelStats => {
     if (stats) return stats;
@@ -241,7 +247,7 @@ export function HotelProvider({ children }: { children: ReactNode }) {
       roomTypes, rooms, reservations, services, users, inventory, activityLog, groups, channels, messages, stats, loading,
       updateRoomStatus, addReservation, updateReservationStatus,
       addService, billService, addUser, updateUser, adjustInventory, updateRoomType,
-      addGroup, updateGroupStatus, deleteGroup, updateChannel, sendManualMessage,
+      addGroup, updateGroupStatus, deleteGroup, updateChannel, sendManualMessage, addActivityLog,
       refreshAll, getStats,
     }}>
       {children}

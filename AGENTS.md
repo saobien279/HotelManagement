@@ -1,6 +1,6 @@
 # HotelOS – Toàn bộ bối cảnh dự án (Agent Context v5)
 
-> Cập nhật lần cuối: 2026-05-22
+> Cập nhật lần cuối: 2026-05-23
 > Trạng thái: **Production-ready** – Hoàn thành tất cả các Phase (1 đến 4). Đã tích hợp đầy đủ hệ thống Authentication, Notifications, Khách đoàn (Groups), Channel Manager (OTA) và Automation. Sẵn sàng migrate cloud DB.
 
 ---
@@ -137,6 +137,7 @@ User Action (UI)
 | `deleteGroup(id)` | `DELETE /api/groups/:id` | groups, reservations, rooms, stats |
 | `updateChannel(id, data)` | `PATCH /api/channels/:id` | channels |
 | `sendManualMessage(bookingId, type, customTemplate?)` | `POST /api/messages` | messages |
+| `addActivityLog(user, action, type)` | `POST /api/logs` | activityLog |
 
 ### Side effects tự động trong API
 - `POST /api/reservations`: nếu có `roomId` → tự set room `occupied`/`reserved`
@@ -247,7 +248,7 @@ newId.log()         // 'L'  + ...
 - File: `app/frontdesk/page.tsx`, `app/globals.css`
 
 ### Phase 4: Advanced Features (Hoàn thành)
-- **4A. Notification System**: Hệ thống thông báo real-time qua `NotificationContext`, hiển thị icon chuông Topbar (đặt phòng mới, check-in, check-out đến hạn, hàng sắp hết tồn). Có badge đếm số, dropdown panel, lưu trữ trạng thái đọc qua localStorage.
+- **4A. Notification System**: Hệ thống thông báo real-time qua `NotificationContext`, hiển thị icon chuông Topbar (đặt phòng mới, check-in, check-out đến hạn, hàng sắp hết tồn, cập nhật công việc buồng phòng). Có badge đếm số, dropdown panel, lưu trữ trạng thái đọc qua localStorage.
 - **4B. Authentication**: Tích hợp NextAuth.js phân quyền theo Role (`admin`, `frontdesk`, `housekeeping`, `accountant`, `inventory`). Trang đăng nhập chuyên biệt, Middleware bảo vệ các routes.
 - **4C. Khách đoàn (Groups)**: Giao diện quản lý khách đoàn, tự động phân phòng trống, thao tác check-in/out cho cả đoàn, tính năng gộp hóa đơn toàn bộ booking trong đoàn.
 - **4D. Channel Manager (OTA)**: Giao diện quản lý các kênh (Booking, Agoda, Expedia, Airbnb, Direct), cấu hình Rate Parity, đồng bộ inventory.

@@ -1,9 +1,23 @@
 import { NextResponse } from 'next/server';
-import { readDB } from '@/lib/db';
+import { readDB, writeDB, appendLog } from '@/lib/db';
 
 // ── GET /api/logs ───────────────────────────
-// Returns the activity log from the DB
 export async function GET() {
   const db = await readDB();
   return NextResponse.json({ data: db.activityLog });
+}
+
+// ── POST /api/logs ──────────────────────────
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const db = await readDB();
+    
+    appendLog(db, body.user || 'Hệ thống', body.action, body.type || 'system');
+    await writeDB(db);
+    
+    return NextResponse.json({ data: db.activityLog });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }
