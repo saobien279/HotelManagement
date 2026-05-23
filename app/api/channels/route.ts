@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { readDB, writeDB } from '@/lib/db';
 
-export async function GET() {
+export const dynamic = 'force-dynamic';
+
+export async function GET(req: Request) {
   const db = await readDB();
   return NextResponse.json({ data: db.channels || [] });
 }

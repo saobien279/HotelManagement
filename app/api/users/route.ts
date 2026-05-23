@@ -3,8 +3,10 @@ import { readDB, writeDB, newId, appendLog } from '@/lib/db';
 import type { User } from '@/lib/types';
 import crypto from 'crypto';
 
+export const dynamic = 'force-dynamic';
+
 // ── GET /api/users ───────────────────────────
-export async function GET() {
+export async function GET(req: Request) {
   const db = await readDB();
   // Never expose passwords in real apps – here we only have username
   return NextResponse.json({ data: db.users, total: db.users.length });

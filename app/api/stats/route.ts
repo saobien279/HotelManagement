@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server';
 import { readDB } from '@/lib/db';
 import { TODAY } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 // ── GET /api/stats ───────────────────────────
 // Returns real-time dashboard KPIs computed from DB
-export async function GET() {
+export async function GET(req: Request) {
   const db = await readDB();
 
   const rooms        = db.rooms;

@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server';
 import { readDB, writeDB } from '@/lib/db';
 import { sendAutomationMessage } from '@/lib/messaging';
 
+export const dynamic = 'force-dynamic';
+
 // ── GET /api/messages ──────────────────────────
-export async function GET() {
+export async function GET(req: Request) {
   const db = await readDB();
   return NextResponse.json({ data: db.messages || [] });
 }
