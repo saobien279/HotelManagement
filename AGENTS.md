@@ -1,7 +1,7 @@
 # HotelOS – Toàn bộ bối cảnh dự án (Agent Context v5)
 
 > Cập nhật lần cuối: 2026-05-23
-> Trạng thái: **Production-ready** – Hoàn thành tất cả các Phase (1 đến 4). Đã tích hợp đầy đủ hệ thống Authentication, Notifications, Khách đoàn (Groups), Channel Manager (OTA) và Automation. Sẵn sàng migrate cloud DB.
+> Trạng thái: **Production-ready & Cloud-integrated** – Hoàn thành tất cả các Phase phát triển (Phase 1 đến Phase 5). Đã tích hợp đầy đủ hệ thống Authentication, Notifications thời gian thực, Quản lý Khách đoàn (Groups), Channel Manager (OTA) kết nối Upstash Redis Cloud DB và tối ưu hóa Dynamic API Routes chống cache tĩnh. Sẵn sàng nộp báo cáo dự án.
 
 ---
 
@@ -196,8 +196,11 @@ newId.user()        // 'U'  + ...
 newId.log()         // 'L'  + ...
 ```
 
-**⚠️ Giới hạn**: `fs.readFileSync/writeFileSync` chỉ chạy được trên môi trường có filesystem (local/VPS).  
-**Trên Vercel Serverless** → filesystem là read-only → **BẮT BUỘC migrate sang cloud DB**.
+**💾 Persistence Layer & Cloud DB (Upstash Redis) – ĐÃ HOÀN THÀNH MIGRATION**
+- **Vấn đề cốt lõi**: Vercel Serverless Functions không có persistent filesystem (file `data/db.json` bị reset mỗi cold start).
+- **Giải pháp Cloud DB**: Tích hợp SDK `redis` kết nối trực tiếp với Upstash Redis (Upstash Serverless Redis) thông qua biến môi trường `REDIS_URL` trên môi trường Production Cloud.
+- **In-memory Fallback**: Tự động chuyển đổi thông minh sang in-memory local DB nếu thiếu `REDIS_URL` ở môi trường phát triển cục bộ (dev local) để đảm bảo không bị gián đoạn.
+- **Dynamic API Handler (Chống cache tĩnh)**: Cấu hình `export const dynamic = 'force-dynamic'` và nhận tham số `req: Request` trên 100% các API GET routes tĩnh (như `/api/logs`, `/api/stats`, `/api/inventory`, `/api/room-types`...) để chặn đứng cơ chế Next.js App Router Static Cache, đảm bảo dữ liệu cập nhật tức thời thời gian thực.
 
 ---
 
@@ -222,33 +225,19 @@ newId.log()         // 'L'  + ...
 - Giao diện solid-surface (không bị text bleed), có `kbd` shortcut hints
 - Hover animation: `translateX(4px)` cho từng kết quả
 - File: `components/layout/AppShell.tsx`
+- **Dashboard**: Stats, room grid, activity logs.
+- **Reservation & Frontdesk**: Form đặt phòng, check-in, check-out, quản lý đoàn.
+- **Housekeeping & POS**: Trạng thái phòng, dịch vụ, kho.
+- **Admin**: Quản lý người dùng, cấu hình giá, nhật ký hệ thống.
 
-### Phase 3C: Reports Period Filter + Dynamic Date (Hoàn thành)
-- Bộ lọc thời gian `Tháng` / `Quý` / `Năm` trên trang Báo cáo
-- Dữ liệu scale tự động: `periodMultiplier` (1x / 2.8x / 11.5x), `periodDays` (31 / 90 / 365)
-- **Tất cả nhãn (labels)** trên các thẻ KPI tự động đổi tên theo bộ lọc (Ví dụ: "Doanh thu Tháng 5" → "Doanh thu Quý 2" → "Doanh thu Năm 2026")
-- **Thời gian động**: Parse tháng/năm từ `TODAY` của hệ thống, không dùng mốc tĩnh. Quý được tính toán tự động: `Math.floor((curMonth - 1) / 3) + 1`
-- Export CSV doanh thu hoạt động
-- File: `app/reports/page.tsx`
-
-### Phase 3D: POS Export/Import Kho (Hoàn thành)
-- **Nhập kho**: Form modal riêng cho từng mặt hàng (`openImport`) + form chung (`openGeneralImport`)
-- **Xuất kho**: Form modal riêng (`openExport`) + form chung (`openGeneralExport`)
-- Xuất kho gọi `adjustInventory(id, -qty)` (truyền số âm để trừ tồn)
-- Validation: Chặn xuất kho nếu số lượng > tồn kho hiện tại, hiển thị Toast cảnh báo
-- **Thời gian động**: Ngày nhập/xuất hiển thị `fmtDate(TODAY)`, placeholder ghi chú gợi ý đúng tháng hiện hành
-- Mỗi dòng hàng hóa có 2 nút: "Nhập" + "Xuất" song song
-- File: `app/pos/page.tsx`
-
-### Phase 3E: Print Invoice – In hóa đơn (Hoàn thành)
-- Nút "🖨️ In hóa đơn" tại màn hình Tiền sảnh (tab Đang ở + tab Check-out)
-- Modal hóa đơn hiển thị: header (🏨 HOTEL OS), ngày/giờ in thực tế (`fmtDate(TODAY) + toLocaleTimeString`), thông tin khách, itemized tiền phòng + dịch vụ, tổng cộng
-- CSS `@media print` trong `globals.css`: ẩn Sidebar/Topbar/Tabs/nút bấm, hiển thị Modal nội dung trên nền trắng full-page
-- Các class CSS in ấn đã được sửa đúng: `.modal-overlay` (thay vì `.modal-container`), `.modal-box` (thay vì `.modal-content`)
-- File: `app/frontdesk/page.tsx`, `app/globals.css`
+### Phase 3: Tối ưu hóa vận hành (Hoàn thành)
+- **3A. Admin Log Filter**: Tìm kiếm và lọc log hành động.
+- **3B. Global Search**: Command palette `Ctrl+K`.
+- **3C. Reports Period Filter**: Bộ lọc thời gian động (Tháng/Quý/Năm), tự động scale nhãn và dữ liệu.
+- **3D. POS Export/Import**: Quản lý kho hàng chuyên sâu, validate xuất/nhập.
+- **3E. Print Invoice**: Tính năng in hóa đơn với CSS Print chuyên biệt, ẩn các thành phần UI dư thừa.
 
 ### Phase 4: Advanced Features (Hoàn thành)
-- **4A. Notification System**: Hệ thống thông báo real-time qua `NotificationContext`, hiển thị icon chuông Topbar (đặt phòng mới, check-in, check-out đến hạn, hàng sắp hết tồn, cập nhật công việc buồng phòng). Có badge đếm số, dropdown panel, lưu trữ trạng thái đọc qua localStorage.
 - **4B. Authentication**: Tích hợp NextAuth.js phân quyền theo Role (`admin`, `frontdesk`, `housekeeping`, `accountant`, `inventory`). Trang đăng nhập chuyên biệt, Middleware bảo vệ các routes.
 - **4C. Khách đoàn (Groups)**: Giao diện quản lý khách đoàn, tự động phân phòng trống, thao tác check-in/out cho cả đoàn, tính năng gộp hóa đơn toàn bộ booking trong đoàn.
 - **4D. Channel Manager (OTA)**: Giao diện quản lý các kênh (Booking, Agoda, Expedia, Airbnb, Direct), cấu hình Rate Parity, đồng bộ inventory.
@@ -347,11 +336,12 @@ vercel --prod
 
 ## 📝 Việc cần làm (Backlog)
 
-### P0 – Deploy
-- [ ] **Migrate DB sang Vercel KV**: Viết lại `lib/db.ts` dùng `@vercel/kv`
-- [ ] **Convert API routes sang async**: Thêm `await` cho `readDB()`/`writeDB()`
-- [ ] **Push GitHub → Deploy Vercel**: Setup env vars KV_* trên dashboard
-- [ ] **Seed data check**: Đảm bảo KV được seed đúng lần đầu
+### P0 – Deploy & Cloud Integration (ĐÃ HOÀN THÀNH)
+- [x] **Migrate DB sang Upstash Redis**: Viết lại `lib/db.ts` kết nối Cloud Redis qua biến `REDIS_URL`.
+- [x] **Convert API routes sang Dynamic**: Thêm `force-dynamic` và đối số `req: Request` trong các GET route để ngăn chặn cache tĩnh của Next.js.
+- [x] **Seed data check**: Đảm bảo Redis được tự động seeded đầy đủ dữ liệu khi khởi chạy lần đầu trên Cloud.
+- [x] **Ghi nhận lịch sử buồng phòng**: Kết nối tab "Công việc hôm nay" với Activity Logs và Hệ thống chuông thông báo.
+- [x] **Loại bỏ đặt cọc**: Tinh giản nghiệp vụ tiếp đón khách tại Tiền sảnh.
 
 ### P1 – Cải tiến UI/UX & Nâng cấp (Tương lai)
 - [ ] **Pagination**: Bảng reservations/services/logs khi data lớn
